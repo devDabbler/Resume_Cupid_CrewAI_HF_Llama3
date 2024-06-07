@@ -10,3 +10,5 @@ pdfminer.six
 crewai
 embedchain
 chromadb
+langchain
+fastembed
