@@ -5,3 +5,4 @@ transformers
 PyMuPDF
 PyPDF2
 tenacity
+python-dotenv
