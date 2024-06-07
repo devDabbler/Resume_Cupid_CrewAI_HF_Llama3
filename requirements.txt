@@ -7,3 +7,4 @@ PyPDF2
 tenacity
 python-dotenv
 pdfminer.six
+crew
