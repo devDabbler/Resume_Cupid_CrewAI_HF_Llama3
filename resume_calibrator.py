@@ -28,9 +28,14 @@ load_dotenv(find_dotenv())
 llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
 
 # Load the fine-tuned model and tokenizer
-model_save_path = r"C:\Users\SEAN COLLINS\Resume_Cupid_CrewAI_HF_Llama3\fine_tuned_model"
-model = AutoModelForSequenceClassification.from_pretrained(model_save_path)
-tokenizer = AutoTokenizer.from_pretrained(model_save_path)
+@st.cache_resource
+def load_model_and_tokenizer():
+    model_save_path = r"C:\Users\SEAN COLLINS\Resume_Cupid_CrewAI_HF_Llama3\fine_tuned_model"
+    model = AutoModelForSequenceClassification.from_pretrained(model_save_path)
+    tokenizer = AutoTokenizer.from_pretrained(model_save_path)
+    return model, tokenizer
+
+model, tokenizer = load_model_and_tokenizer()
 
 # Initialize logging
 logging.basicConfig(filename='resume_calibrator.log', level=logging.ERROR)
@@ -39,6 +44,7 @@ logging.basicConfig(filename='resume_calibrator.log', level=logging.ERROR)
 FEEDBACK_FILE = "feedback_data.json"
 
 # Load feedback data from file
+@st.cache_data
 def load_feedback_data():
     if os.path.exists(FEEDBACK_FILE):
         with open(FEEDBACK_FILE, "r") as file:
@@ -47,13 +53,12 @@ def load_feedback_data():
                 return json.loads(content)
     return []
 
+feedback_data = load_feedback_data()
+
 # Save feedback data to file
 def save_feedback_data(feedback_data):
     with open(FEEDBACK_FILE, "w") as file:
         json.dump(feedback_data, file)
-
-# Load feedback data when the app starts
-feedback_data = load_feedback_data()
 
 # Function to extract first name from resume text
 def extract_first_name(resume_text):
@@ -134,12 +139,14 @@ def display_results(result, position_titles):
         else:
             st.success("The candidate's experience fitment is strong. Please review the detailed evaluation report to understand the candidate's relevant experience and skills.")
 
+@st.cache_data
 def analyze_skills(skills_section, job_description):
     required_skills = job_description.lower().split(',')
     candidate_skills = skills_section.lower().split(',')
     matched_skills = [skill for skill in required_skills if skill in candidate_skills]
     return matched_skills
 
+@st.cache_data
 def analyze_experience(experience_section, job_description):
     relevant_experience = []
     position_titles = []
@@ -166,6 +173,7 @@ def analyze_experience(experience_section, job_description):
 
     return relevant_experience, position_titles
 
+@st.cache_data
 def read_all_pdf_pages(pdf_path):
     text = ''
     try:
@@ -187,6 +195,12 @@ def read_all_pdf_pages(pdf_path):
         print(f"PDFMiner extraction failed: {e}")
 
     return ""
+
+@st.cache_data
+def extract_resume_sections(resume):
+    resume_skills = extract_skills_section(resume, skills_keywords)
+    resume_experience = extract_experience_section(resume)
+    return resume_skills, resume_experience
 
 def predict_fitment(job_description, resume_text):
     inputs = tokenizer(job_description + " " + resume_text, return_tensors="pt", padding=True, truncation=True)
@@ -210,8 +224,7 @@ if submitted and resume_file is not None and len(job_description) > 100:
         # Extract first name from the resume text
         resume_first_name = extract_first_name(resume)
 
-        resume_skills = extract_skills_section(resume, skills_keywords)
-        resume_experience = extract_experience_section(resume)
+        resume_skills, resume_experience = extract_resume_sections(resume)
 
         # Analyze the extracted sections
         matched_skills = analyze_skills(resume_skills, job_description)
