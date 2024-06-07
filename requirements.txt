@@ -8,3 +8,5 @@ tenacity
 python-dotenv
 pdfminer.six
 crewai
+embedchain
+chromadb
