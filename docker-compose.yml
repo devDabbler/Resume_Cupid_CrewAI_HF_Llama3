@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  app:
+    image: ghcr.io/scollin10/resume_cupid:latest
+    ports:
+      - "8501:8501"
+    environment:
+      - ENV_VARIABLE=value
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=30
