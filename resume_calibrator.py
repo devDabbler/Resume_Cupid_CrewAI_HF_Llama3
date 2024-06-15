@@ -1,3 +1,4 @@
+from flask import Blueprint, render_template
 import os
 import tempfile
 import streamlit as st
@@ -10,19 +11,30 @@ import logging
 import fitz  # PyMuPDF
 from pdfminer.high_level import extract_text as pdfminer_extract_text
 from agents_module import create_resume_calibrator_agent, create_skills_agent, create_experience_agent
-from tasks import create_calibration_task, create_skill_evaluation_task, create_experience_evaluation_task
+from tasks import create_calibration_task, create_skill_evaluation_task, create_experience_evaluation_task, log_run  # Correct import
 from utils import read_all_pdf_pages, extract_skills_section, extract_experience_section, skills_keywords
 from datetime import datetime
 import json
-from module_name import log_run
 import time
 import torch
 from crewai import Crew
 from crew import Crew
 from langchain_groq import ChatGroq
 
+# Streamlit UI setup
+st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
+
 # Load environment variables
 load_dotenv(find_dotenv())
+
+def create_resume_calibrator_blueprint():
+    resume_bp = Blueprint('resume', __name__)
+
+    @resume_bp.route('/')
+    def resume_calibrator():
+        return "Resume Calibrator Main Page"
+
+    return resume_bp
 
 # Initialize the LLM
 llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
@@ -30,7 +42,7 @@ llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
 # Load the fine-tuned model and tokenizer
 @st.cache_resource
 def load_model_and_tokenizer():
-    model_save_path = r"C:\Users\SEAN COLLINS\Resume_Cupid_CrewAI_HF_Llama3\fine_tuned_model"
+    model_save_path = "fine_tuned_model"  # Updated path
     model = AutoModelForSequenceClassification.from_pretrained(model_save_path)
     tokenizer = AutoTokenizer.from_pretrained(model_save_path)
     return model, tokenizer
@@ -69,7 +81,6 @@ def extract_first_name(resume_text):
     return "Unknown"
 
 # Streamlit UI setup
-st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
 st.title("Resume Cupid")
 st.markdown("Use this app to help you decide if a candidate is a good fit for a specific role.")
 
@@ -162,7 +173,7 @@ def analyze_experience(experience_section, job_description):
 
         section_start = experience_section.find(title)
         section_end = experience_section.find('\n\n', section_start)
-        if section_end == -1:
+        if (section_end == -1):
             section_end = len(experience_section)
 
         section_text = experience_section[section_start:section_end]
