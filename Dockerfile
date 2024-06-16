@@ -13,14 +13,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Upgrade pip and setuptools
 RUN pip install --upgrade pip setuptools
 
-# Copy the requirements file into the container
-COPY requirements.txt .
-
-# Install the dependencies with an increased timeout
-RUN pip install --default-timeout=300 --no-cache-dir -r requirements.txt && pip check
-
-# Copy the rest of the application code into the container
+# Copy the application code into the container
 COPY . .
+
+# Install the dependencies using setup.py
+RUN pip install --default-timeout=300 --no-cache-dir .
 
 # Expose port 8501 to the outside world
 EXPOSE 8501
