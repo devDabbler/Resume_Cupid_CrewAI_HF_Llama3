@@ -2,11 +2,11 @@ version: '3.8'
 
 services:
   app:
-    image: ghcr.io/scollin10/resume_cupid:latest
+    image: registry.gitlab.com/resume-cupid/llama3-and-hugging-face:latest
     ports:
       - "8501:8501"
     environment:
-      - ENV_VARIABLE=value
+      - GROQ_API_KEY=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
 
   watchtower:
     image: containrrr/watchtower
