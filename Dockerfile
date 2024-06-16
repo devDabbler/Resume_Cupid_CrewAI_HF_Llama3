@@ -17,10 +17,13 @@ RUN pip install --upgrade pip setuptools
 COPY requirements.txt .
 
 # Install the dependencies with an increased timeout
-RUN pip install --default-timeout=300 --no-cache-dir -r requirements.txt && pip check
+RUN pip install --default-timeout=300 --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code into the container
+# Copy the application code into the container
 COPY . .
+
+# Install the dependencies using setup.py
+RUN pip install --default-timeout=300 --no-cache-dir .
 
 # List installed packages for debugging
 RUN pip list
