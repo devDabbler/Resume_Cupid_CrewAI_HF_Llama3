@@ -18,6 +18,7 @@ COPY requirements.txt .
 
 # Install the dependencies with an increased timeout
 RUN pip install --default-timeout=300 --no-cache-dir -r requirements.txt
+RUN pip install --default-timeout=300 --no-cache-dir flask
 
 # Copy the application code into the container
 COPY . .
