@@ -3,7 +3,7 @@ FROM python:3.10-slim
 # Set the working directory in the container
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies and Supervisor
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3-dev \
@@ -19,13 +19,9 @@ COPY requirements.txt .
 
 # Install the dependencies with an increased timeout
 RUN pip install --default-timeout=300 --no-cache-dir -r requirements.txt
-RUN pip install --default-timeout=300 --no-cache-dir flask
 
 # Copy the application code into the container
 COPY . .
-
-# Install the dependencies using setup.py
-RUN pip install --default-timeout=300 --no-cache-dir .
 
 # List installed packages for debugging
 RUN pip list
