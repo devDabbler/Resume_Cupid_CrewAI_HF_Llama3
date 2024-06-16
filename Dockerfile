@@ -7,6 +7,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3-dev \
+    supervisor \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -29,12 +30,11 @@ RUN pip install --default-timeout=300 --no-cache-dir .
 # List installed packages for debugging
 RUN pip list
 
-# Expose port 8501 to the outside world
-EXPOSE 8501
+# Copy the Supervisor configuration file
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Add health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+# Expose the ports for Flask and Streamlit
+EXPOSE 5000 8501
 
-# Command to run the application
-CMD ["streamlit", "run", "resume_calibrator.py"]
+# Run Supervisor as the entry point
+CMD ["/usr/bin/supervisord"]
