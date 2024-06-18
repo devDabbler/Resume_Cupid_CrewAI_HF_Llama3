@@ -1,36 +1,18 @@
+# Use the official lightweight Python image.
+# https://hub.docker.com/_/python
 FROM python:3.10-slim
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /app
 
-# Install system dependencies and Supervisor
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    python3-dev \
-    supervisor \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Copy the current directory contents into the container at /app
+COPY . /app
 
-# Upgrade pip and setuptools
-RUN pip install --upgrade pip setuptools
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the requirements file into the container
-COPY requirements.txt .
+# Expose port 80
+EXPOSE 80
 
-# Install the dependencies with an increased timeout
-RUN pip install --default-timeout=300 --no-cache-dir -r requirements.txt
-
-# Copy the application code into the container
-COPY . .
-
-# List installed packages for debugging
-RUN pip list
-
-# Copy the Supervisor configuration file
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Expose the ports for Flask and Streamlit
-EXPOSE 5000 8501
-
-# Run Supervisor as the entry point
-CMD ["/usr/bin/supervisord"]
+# Run app.py when the container launches
+CMD ["streamlit", "run", "resume_calibrator.py", "--server.port=80", "--server.address=0.0.0.0"]
