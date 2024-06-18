@@ -6,8 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'streamlit',
-        'flask',
-        'flask-session',
+        'streamlit_authenticator',
         'python-dotenv',
         'transformers==4.39.3',  # Ensure compatibility with other packages
         'torch',
