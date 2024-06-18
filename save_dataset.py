@@ -1,5 +1,5 @@
 import pandas as pd
-from datasets import Dataset
+from datasets import Dataset # type: ignore
 from transformers import AutoTokenizer
 import json
 import logging
