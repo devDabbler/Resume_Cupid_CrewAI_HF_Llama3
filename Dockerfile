@@ -21,11 +21,14 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone the latest version of your repository
-RUN git clone https://github.com/devDabbler/Resume_Cupid_CrewAI_HF_Llama3.git /app
+# Remove any existing files and clone the latest version of your repository
+RUN rm -rf /app/* && git clone https://github.com/your-username/your-repository.git /app
 
 # Set the working directory to the cloned repository
 WORKDIR /app
+
+# Copy the config.yaml file into the container
+COPY config.yaml /app/config.yaml
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
