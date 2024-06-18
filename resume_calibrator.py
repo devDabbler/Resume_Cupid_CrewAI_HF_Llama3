@@ -6,7 +6,7 @@ import re
 import logging
 import fitz
 from pdfminer.high_level import extract_text as pdfminer_extract_text
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers import AutoTokenizer, AutoConfig
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime
 import json
@@ -15,6 +15,8 @@ import yaml
 from tasks import log_run
 from utils import extract_experience_section, extract_skills_section
 import streamlit_authenticator as stauth
+from safetensors import safe_open
+from transformers import AutoModelForSequenceClassification
 
 # Streamlit UI setup
 st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
@@ -39,22 +41,21 @@ authenticator = stauth.Authenticate(
 name, authentication_status, username = authenticator.login("main")
 
 # Check the authentication status
+st.write(f"Debug: authentication_status = {authentication_status}")  # Debugging statement
+
+# Check the authentication status
 if authentication_status == False:
     st.error("Username/password is incorrect")
 elif authentication_status == None:
     st.warning("Please enter your username and password")
 elif authentication_status:
-    # Your existing Streamlit code goes here
     st.title("Resume Cupid")
     st.markdown("Use this app to help you decide if a candidate is a good fit for a specific role.")
 
-    # Logging setup
     logging.basicConfig(filename='resume_calibrator.log', level=logging.ERROR)
 
-    # Feedback data file
     FEEDBACK_FILE = "feedback_data.json"
 
-    # Load feedback data from file
     def load_feedback_data():
         if os.path.exists(FEEDBACK_FILE):
             with open(FEEDBACK_FILE, "r") as file:
@@ -65,28 +66,34 @@ elif authentication_status:
 
     feedback_data = load_feedback_data()
 
-    # Save feedback data to file
     def save_feedback_data(feedback_data):
         with open(FEEDBACK_FILE, "w") as file:
             json.dump(feedback_data, file)
 
-    # Function to extract first name from resume text
     def extract_first_name(resume_text):
         match = re.match(r"(\w+)", resume_text)
         if match:
             return match.group(1)
         return "Unknown"
 
-    # Load the fine-tuned model and tokenizer
     def load_model_and_tokenizer():
-        model_save_path = "fine_tuned_model"
-        model = torch.load(os.path.join(model_save_path, "pytorch_model.bin"))
-        tokenizer = AutoTokenizer.from_pretrained(model_save_path)
-        return model, tokenizer
+        model_save_path = r"C:\Users\SEAN COLLINS\Resume_Cupid_CrewAI_HF_Llama3\fine_tuned_model\model.safetensors"
+        config_path = r"C:\Users\SEAN COLLINS\Resume_Cupid_CrewAI_HF_Llama3\fine_tuned_model"  # This should be the directory containing config.json
+        tokenizer = AutoTokenizer.from_pretrained(config_path)
 
+        config = AutoConfig.from_pretrained(config_path)
+    
+        with safe_open(model_save_path, framework='pt') as f:
+            tensor_names = f.keys()
+            state_dict = {name: f.get_tensor(name) for name in tensor_names}
+    
+        model = AutoModelForSequenceClassification.from_config(config)
+        model.load_state_dict(state_dict)
+
+        return model, tokenizer
+    
     model, tokenizer = load_model_and_tokenizer()
 
-    # Function definitions
     def calculate_weights(rankings):
         total_ranks = sum(rankings)
         weights = [rank / total_ranks for rank in rankings]
@@ -194,7 +201,6 @@ elif authentication_status:
         predicted_class = torch.argmax(logits, dim=1).item()
         return predicted_class
 
-    # Streamlit UI
     with st.form(key='resume_form'):
         job_description = st.text_area("Paste the Job Description here. Make sure to include key aspects of the role required.", placeholder="Job description. This field should have at least 100 characters.")
         resume_file = st.file_uploader("Upload your resume", type=['pdf', 'docx'])
@@ -216,7 +222,7 @@ elif authentication_status:
 
         submitted = st.form_submit_button('Submit')
 
-    resume_first_name = "Unknown"  # Default value in case the form is not submitted
+    resume_first_name = "Unknown"
 
     if submitted and resume_file is not None and len(job_description) > 100:
         try:
@@ -237,13 +243,10 @@ elif authentication_status:
             parameters = [skill1, skill2, skill3, skill4, skill5, f"{min_experience} or more years of experience"]
             weights = calculate_weights(skill_rankings)
 
-            # Call the predict_fitment() function to get the fitment score
             fitment_score = predict_fitment(job_description, resume)
 
-            # Convert fitment_score to string before passing it to display_results()
             fitment_score_str = str(fitment_score)
 
-            # Log the inputs and output
             input_data = {
                 "job_description": job_description,
                 "resume": resume,
@@ -264,7 +267,6 @@ elif authentication_status:
     else:
         st.write("Awaiting input and file upload...")
 
-    # Feedback form
     with st.form(key='feedback_form'):
         st.subheader("Feedback")
         name = st.text_input("Name of Person Leaving Feedback")
@@ -292,7 +294,6 @@ elif authentication_status:
             save_feedback_data(feedback_data)
             st.success("Thank you for your feedback!")
 
-    # Add a section for password reset
     if st.button("Reset Password"):
         try:
             if authenticator.reset_password(username, "main"):
