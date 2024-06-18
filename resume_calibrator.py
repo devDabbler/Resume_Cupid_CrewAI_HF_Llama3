@@ -80,7 +80,7 @@ elif authentication_status:
     # Load the fine-tuned model and tokenizer
     def load_model_and_tokenizer():
         model_save_path = "fine_tuned_model"
-        model = AutoModelForSequenceClassification.from_pretrained(model_save_path)
+        model = torch.load(os.path.join(model_save_path, "pytorch_model.bin"))
         tokenizer = AutoTokenizer.from_pretrained(model_save_path)
         return model, tokenizer
 

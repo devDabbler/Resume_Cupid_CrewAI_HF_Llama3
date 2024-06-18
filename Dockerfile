@@ -33,8 +33,13 @@ COPY config.yaml /app/config.yaml
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Upgrade transformers to the latest version
+RUN pip install --upgrade transformers
+
 # Expose port 8501
 EXPOSE 8501
 
 # Run resume_calibrator.py when the container launches
 CMD ["streamlit", "run", "resume_calibrator.py", "--server.port=8501", "--server.address=0.0.0.0"]
+
+
