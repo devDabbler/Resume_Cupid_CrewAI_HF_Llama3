@@ -78,7 +78,6 @@ elif authentication_status:
         return "Unknown"
 
     # Load the fine-tuned model and tokenizer
-    @st.cache_resource
     def load_model_and_tokenizer():
         model_save_path = "fine_tuned_model"
         model = AutoModelForSequenceClassification.from_pretrained(model_save_path)
@@ -200,7 +199,7 @@ elif authentication_status:
         job_description = st.text_area("Paste the Job Description here. Make sure to include key aspects of the role required.", placeholder="Job description. This field should have at least 100 characters.")
         resume_file = st.file_uploader("Upload your resume", type=['pdf', 'docx'])
         role = st.text_input("Type the role for which the candidate is being evaluated:", placeholder="Enter the role here")
-        
+
         st.write("Enter the key parameters to evaluate the resume:")
         skill1 = st.text_input("Skill 1", placeholder="JavaScript")
         skill2 = st.text_input("Skill 2", placeholder="Python")
@@ -208,13 +207,13 @@ elif authentication_status:
         skill4 = st.text_input("Skill 4", placeholder="ETL")
         skill5 = st.text_input("Skill 5", placeholder="Git")
         min_experience = st.number_input("Minimum years of experience", min_value=0, value=5)
-        
+
         st.write("Rank the skills in order of importance (1 being the most important):")
         skill_rankings = []
         for i in range(1, 6):
             rank = st.number_input(f"Rank for Skill {i}", min_value=1, max_value=5, value=i, key=f"skill_rank_{i}")
             skill_rankings.append(rank)
-        
+
         submitted = st.form_submit_button('Submit')
 
     resume_first_name = "Unknown"  # Default value in case the form is not submitted
@@ -224,10 +223,10 @@ elif authentication_status:
             with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
                 tmp_file.write(resume_file.read())
                 resume_file_path = tmp_file.name
-            
+
             resume = read_all_pdf_pages(resume_file_path)
             os.unlink(resume_file_path)
-            
+
             resume_first_name = extract_first_name(resume)
 
             resume_skills, resume_experience = extract_resume_sections(resume)
@@ -237,10 +236,10 @@ elif authentication_status:
 
             parameters = [skill1, skill2, skill3, skill4, skill5, f"{min_experience} or more years of experience"]
             weights = calculate_weights(skill_rankings)
-        
+
             # Call the predict_fitment() function to get the fitment score
             fitment_score = predict_fitment(job_description, resume)
-            
+
             # Convert fitment_score to string before passing it to display_results()
             fitment_score_str = str(fitment_score)
 
@@ -257,7 +256,7 @@ elif authentication_status:
 
             print("Result:", fitment_score_str)
             display_results(fitment_score_str, position_titles)
-            
+
         except Exception as e:
             st.error(f"Failed to process the request: {str(e)}")
             logging.error(f"Failed to process the request: {str(e)}")
