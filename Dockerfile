@@ -18,10 +18,14 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     tesseract-ocr \
     libleptonica-dev \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+# Clone the latest version of your repository
+RUN git clone https://github.com/devDabbler/Resume_Cupid_CrewAI_HF_Llama3.git /app
+
+# Set the working directory to the cloned repository
+WORKDIR /app
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
