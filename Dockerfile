@@ -30,6 +30,9 @@ WORKDIR /app
 # Copy the config.yaml file into the container
 COPY config.yaml /app/config.yaml
 
+# Copy the fine_tuned_model directory into the container
+COPY fine_tuned_model /app/fine_tuned_model
+
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -41,5 +44,3 @@ EXPOSE 8501
 
 # Run resume_calibrator.py when the container launches
 CMD ["streamlit", "run", "resume_calibrator.py", "--server.port=8501", "--server.address=0.0.0.0"]
-
-

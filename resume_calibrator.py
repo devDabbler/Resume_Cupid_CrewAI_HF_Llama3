@@ -76,22 +76,23 @@ elif authentication_status:
             return match.group(1)
         return "Unknown"
 
+    # Load the fine-tuned model and tokenizer
     def load_model_and_tokenizer():
-        model_save_path = r"C:\Users\SEAN COLLINS\Resume_Cupid_CrewAI_HF_Llama3\fine_tuned_model\model.safetensors"
-        config_path = r"C:\Users\SEAN COLLINS\Resume_Cupid_CrewAI_HF_Llama3\fine_tuned_model"  # This should be the directory containing config.json
+        model_save_path = "./fine_tuned_model/model.safetensors"
+        config_path = "./fine_tuned_model"  # This should be the directory containing config.json
         tokenizer = AutoTokenizer.from_pretrained(config_path)
 
         config = AutoConfig.from_pretrained(config_path)
-    
+
         with safe_open(model_save_path, framework='pt') as f:
             tensor_names = f.keys()
             state_dict = {name: f.get_tensor(name) for name in tensor_names}
-    
+
         model = AutoModelForSequenceClassification.from_config(config)
         model.load_state_dict(state_dict)
 
         return model, tokenizer
-    
+
     model, tokenizer = load_model_and_tokenizer()
 
     def calculate_weights(rankings):
