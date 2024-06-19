@@ -4,11 +4,16 @@ FROM python:3.10
 # Set the working directory in the container
 WORKDIR /app
 
-# Install git
-RUN apt-get update && apt-get install -y git
+# Install git and ssh
+RUN apt-get update && apt-get install -y git openssh-client
 
-# Clone the repository
-RUN git clone https://github.com/devDabbler/Resume_Cupid_CrewAI_HF_Llama3.git /app
+# Copy the SSH key and set permissions
+COPY id_rsa /root/.ssh/id_rsa
+RUN chmod 600 /root/.ssh/id_rsa
+RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
+
+# Clone the repository using SSH
+RUN git clone git@github.com:devDabbler/Resume_Cupid_CrewAI_HF_Llama3.git /app
 
 # Copy the current directory contents into the container at /app
 COPY . /app
