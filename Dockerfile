@@ -4,6 +4,12 @@ FROM python:3.10
 # Set the working directory in the container
 WORKDIR /app
 
+# Install git
+RUN apt-get update && apt-get install -y git
+
+# Clone the repository
+RUN git clone https://github.com/your-username/your-repository.git /app
+
 # Copy the current directory contents into the container at /app
 COPY . /app
 
@@ -15,6 +21,9 @@ EXPOSE 8501
 
 # Define environment variable
 ENV MODEL_PATH=/app/model
+
+# Pull the latest changes from the repository
+RUN cd /app && git pull
 
 # Run app.py when the container launches
 CMD ["streamlit", "run", "resume_calibrator_docker.py"]
