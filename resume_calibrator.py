@@ -1,12 +1,11 @@
 import os
 import tempfile
-import requests
 import streamlit as st
 import re
 import logging
 import fitz
 from pdfminer.high_level import extract_text as pdfminer_extract_text
-from transformers import AutoTokenizer, AutoConfig
+from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime
 import json
@@ -16,7 +15,11 @@ from tasks import log_run
 from utils import extract_experience_section, extract_skills_section
 import streamlit_authenticator as stauth
 from safetensors import safe_open
-from transformers import AutoModelForSequenceClassification
+from langchain_groq import ChatGroq  # Correct import
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Streamlit UI setup
 st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
@@ -41,9 +44,6 @@ authenticator = stauth.Authenticate(
 name, authentication_status, username = authenticator.login("main")
 
 # Check the authentication status
-st.write(f"Debug: authentication_status = {authentication_status}")  # Debugging statement
-
-# Check the authentication status
 if authentication_status == False:
     st.error("Username/password is incorrect")
 elif authentication_status == None:
@@ -54,7 +54,7 @@ elif authentication_status:
 
     logging.basicConfig(filename='resume_calibrator.log', level=logging.ERROR)
 
-    FEEDBACK_FILE = "feedback_data.json"
+    FEEDBACK_FILE = r"C:\Users\SEAN COLLINS\Resume_Cupid_CrewAI_HF_Llama3\data\feedback_data.json"
 
     def load_feedback_data():
         if os.path.exists(FEEDBACK_FILE):
@@ -67,6 +67,7 @@ elif authentication_status:
     feedback_data = load_feedback_data()
 
     def save_feedback_data(feedback_data):
+        os.makedirs(os.path.dirname(FEEDBACK_FILE), exist_ok=True)  # Ensure directory exists
         with open(FEEDBACK_FILE, "w") as file:
             json.dump(feedback_data, file)
 
@@ -76,33 +77,17 @@ elif authentication_status:
             return match.group(1)
         return "Unknown"
 
-    # Load the fine-tuned model and tokenizer
     def load_model_and_tokenizer():
-        model_save_path = "./fine_tuned_model/model.safetensors"
-        config_path = "./fine_tuned_model"  # This should be the directory containing config.json
-        tokenizer = AutoTokenizer.from_pretrained(config_path)
-        config = AutoConfig.from_pretrained(config_path)
-    
-    # Initialize model with config
-        model = AutoModelForSequenceClassification.from_config(config)
-    
-    # Load state dict in chunks
-        with safe_open(model_save_path, framework='pt') as f:
-            tensor_names = f.keys()
-            state_dict = {}
-        
-        for name in tensor_names:
-            state_dict[name] = f.get_tensor(name)
-            
-            # Optionally, log the loaded tensor name to track progress
-            print(f"Loaded tensor: {name}")
-            
-            # Load state_dict into the model incrementally
-            model.load_state_dict(state_dict, strict=False)
-
+        model_path = os.getenv('MODEL_PATH', r"C:\Users\SEAN COLLINS\Resume_Cupid_CrewAI_HF_Llama3\fine_tune_model")
+        print(f"Loading model from: {model_path}")
+        tokenizer = AutoTokenizer.from_pretrained(model_path)
+        model = AutoModelForSequenceClassification.from_pretrained(model_path)
         return model, tokenizer
 
     model, tokenizer = load_model_and_tokenizer()
+
+    # Initialize the LLM
+    llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
 
     def calculate_weights(rankings):
         total_ranks = sum(rankings)
@@ -115,46 +100,60 @@ elif authentication_status:
         fitment_percentage = total_score * 100 / max_score
         return fitment_percentage
 
-    def display_results(result, position_titles):
-        result_without_duplicate = re.sub(r'\*\*Experience Evaluation Report:\*\*', '', result)
-        st.write(result_without_duplicate)
+    def display_results(fitment_score, matched_skills, unmatched_skills, relevant_experience):
+        st.subheader("Fitment Score:")
+        st.write(f"{fitment_score:.2f}%")
 
-        st.subheader("Candidate's Position Titles:")
-        for title in position_titles:
-            st.write(f"- {title}")
+        if fitment_score < 60:
+            st.warning("The candidate's experience fitment is relatively low. Please review the detailed evaluation report for areas where the candidate's experience may not align with the job requirements.")
+        elif fitment_score < 80:
+            st.info("The candidate's experience fitment is moderate. Please review the detailed evaluation report to identify areas where the candidate's experience can be strengthened to better align with the job requirements.")
+        else:
+            st.success("The candidate's experience fitment is strong. Please review the detailed evaluation report to understand the candidate's relevant experience and skills.")
 
-        experience_report = re.search(r"\*\*Experience Evaluation Report\*\*(.*?)\n\n", result, re.DOTALL)
-        if experience_report:
-            st.subheader("Experience Evaluation Report:")
-            st.write(experience_report.group(1).strip())
+        st.subheader("Matched Skills:")
+        if matched_skills:
+            for skill, score in matched_skills.items():
+                st.write(f"- {skill}: {score:.2f}")
+        else:
+            st.write("No matched skills found.")
 
-        skills_report = re.search(r"\*\*Technical Skills Evaluation Report\*\*(.*?)\*\*Recommendation\*\*", result, re.DOTALL)
-        if skills_report:
-            st.subheader("Technical Skills Evaluation Report:")
-            st.write(skills_report.group().strip())
+        st.subheader("Unmatched Skills:")
+        if unmatched_skills:
+            for skill in unmatched_skills:
+                st.write(f"- {skill}")
+                st.write("  Recommendation: The candidate should focus on acquiring or improving this skill to become a stronger fit for the role. Consider taking online courses, working on relevant projects, or gaining practical experience in this area.")
+        else:
+            st.write("All required skills are matched.")
 
-        fitment_score = re.search(r"\*\*Fitment Score: (\d+\.\d+)%", result)
-        if fitment_score:
-            fitment_percentage = float(fitment_score.group(1))
-            st.subheader("Fitment Score:")
-            st.write(f"{fitment_percentage:.2f}%")
-
-            if fitment_percentage < 60:
-                st.warning("The candidate's experience fitment is relatively low. Please review the detailed evaluation report for areas where the candidate's experience may not align with the job requirements.")
-            elif fitment_percentage < 80:
-                st.info("The candidate's experience fitment is moderate. Please review the detailed evaluation report to identify areas where the candidate's experience can be strengthened to better align with the job requirements.")
-            else:
-                st.success("The candidate's experience fitment is strong. Please review the detailed evaluation report to understand the candidate's relevant experience and skills.")
+        st.subheader("Relevant Experience:")
+        if relevant_experience:
+            for experience, score in relevant_experience.items():
+                st.write(f"- {experience}: {score:.2f}")
+        else:
+            st.write("No relevant experience found.")
 
     def analyze_skills(skills_section, job_description):
-        required_skills = job_description.lower().split(',')
-        candidate_skills = skills_section.lower().split(',')
-        matched_skills = [skill for skill in required_skills if skill in candidate_skills]
-        return matched_skills
+        required_skills = [skill.strip().lower() for skill in job_description.split(',')]
+        candidate_skills = [skill.strip().lower() for skill in skills_section.split(',')]
+
+        matched_skills = {}
+        for skill in candidate_skills:
+            if skill in required_skills:
+                matched_skills[skill] = 1.0
+            else:
+                for req_skill in required_skills:
+                    similarity = calculate_semantic_similarity(skill, req_skill)
+                    if similarity > 0.7:
+                        matched_skills[skill] = similarity
+                        break
+
+        unmatched_skills = [skill for skill in required_skills if skill not in matched_skills]
+
+        return matched_skills, unmatched_skills
 
     def analyze_experience(experience_section, job_description):
-        relevant_experience = []
-        position_titles = []
+        relevant_experience = {}
 
         section_pattern = re.compile(r'^(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)$', re.MULTILINE)
         bullet_point_pattern = re.compile(r'^\s*•\s*(.+?)$', re.MULTILINE)
@@ -162,8 +161,6 @@ elif authentication_status:
         sections = section_pattern.findall(experience_section)
 
         for title, company, duration in sections:
-            position_titles.append(f"{title.strip()} at {company.strip()} ({duration.strip()})")
-
             section_start = experience_section.find(title)
             section_end = experience_section.find('\n\n', section_start)
             if section_end == -1:
@@ -172,10 +169,18 @@ elif authentication_status:
             section_text = experience_section[section_start:section_end]
             bullet_points = bullet_point_pattern.findall(section_text)
 
-            if any(keyword in ' '.join(bullet_points).lower() for keyword in ['data scientist', 'machine learning', 'data analysis', 'python', 'sql', 'regression', 'unsupervised learning', 'time-series']):
-                relevant_experience.append(section_text.strip())
+            for bullet_point in bullet_points:
+                similarity = calculate_semantic_similarity(bullet_point, job_description)
+                if similarity > 0.6:
+                    relevant_experience[bullet_point] = similarity
 
-        return relevant_experience, position_titles
+        return relevant_experience
+
+    def calculate_semantic_similarity(text1, text2):
+        vectorizer = TfidfVectorizer(stop_words='english')
+        tfidf_matrix = vectorizer.fit_transform([text1, text2])
+        similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+        return similarity
 
     def read_all_pdf_pages(pdf_path):
         text = ''
@@ -200,7 +205,7 @@ elif authentication_status:
     skills_keywords = ["skills", "technical skills", "professional skills", "key skills", "core competencies", "areas of expertise", "technical proficiencies", "technical competencies", "skills summary", "skills & competencies", "skills and competencies", "skills & proficiencies", "skills and proficiencies", "skills & strengths", "skills and strengths", "skills & abilities", "skills and abilities", "skills & qualifications", "skills and qualifications", "skills & experience", "skills and experience", "skills & knowledge", "skills and knowledge", "skills & expertise", "skills and expertise"]
 
     def extract_resume_sections(resume):
-        resume_skills = extract_skills_section(resume, skills_keywords) # type: ignore
+        resume_skills = extract_skills_section(resume, skills_keywords)  # type: ignore
         resume_experience = extract_experience_section(resume)
         return resume_skills, resume_experience
 
@@ -208,8 +213,9 @@ elif authentication_status:
         inputs = tokenizer(job_description + " " + resume_text, return_tensors="pt", padding=True, truncation=True)
         outputs = model(**inputs)
         logits = outputs.logits
-        predicted_class = torch.argmax(logits, dim=1).item()
-        return predicted_class
+        probabilities = torch.softmax(logits, dim=1)
+        fitment_score = torch.max(probabilities).item() * 100  # Convert to percentage
+        return fitment_score
 
     with st.form(key='resume_form'):
         job_description = st.text_area("Paste the Job Description here. Make sure to include key aspects of the role required.", placeholder="Job description. This field should have at least 100 characters.")
@@ -247,15 +253,16 @@ elif authentication_status:
 
             resume_skills, resume_experience = extract_resume_sections(resume)
 
-            matched_skills = analyze_skills(resume_skills, job_description)
-            relevant_experience, position_titles = analyze_experience(resume_experience, job_description)
+            matched_skills, unmatched_skills = analyze_skills(resume_skills, job_description)
+            relevant_experience = analyze_experience(resume_experience, job_description)
 
             parameters = [skill1, skill2, skill3, skill4, skill5, f"{min_experience} or more years of experience"]
             weights = calculate_weights(skill_rankings)
 
             fitment_score = predict_fitment(job_description, resume)
 
-            fitment_score_str = str(fitment_score)
+            # Use the LLM for additional processing if needed
+            llm_response = llm.predict(fitment_score)  # Example usage
 
             input_data = {
                 "job_description": job_description,
@@ -264,11 +271,11 @@ elif authentication_status:
                 "parameters": parameters,
                 "weights": weights
             }
-            output_data = {"result": fitment_score_str}
+            output_data = {"result": fitment_score}
             log_run(input_data, output_data)
 
-            print("Result:", fitment_score_str)
-            display_results(fitment_score_str, position_titles)
+            print("Result:", fitment_score)
+            display_results(fitment_score, matched_skills, unmatched_skills, relevant_experience)
 
         except Exception as e:
             st.error(f"Failed to process the request: {str(e)}")
@@ -303,12 +310,5 @@ elif authentication_status:
             feedback_data.append(feedback_entry)
             save_feedback_data(feedback_data)
             st.success("Thank you for your feedback!")
-
-    if st.button("Reset Password"):
-        try:
-            if authenticator.reset_password(username, "main"):
-                st.success("Password reset successfully")
-        except Exception as e:
-            st.error(e)
 
     authenticator.logout("Logout", "sidebar")

@@ -34,3 +34,7 @@ dirtyjson<2.0.0,>=1.0.8
 chardet
 lxml
 PyPDF2
+pandas
+huggingface_hub
+datasets
+pyYAML  
