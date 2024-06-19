@@ -81,15 +81,24 @@ elif authentication_status:
         model_save_path = "./fine_tuned_model/model.safetensors"
         config_path = "./fine_tuned_model"  # This should be the directory containing config.json
         tokenizer = AutoTokenizer.from_pretrained(config_path)
-
         config = AutoConfig.from_pretrained(config_path)
-
+    
+    # Initialize model with config
+        model = AutoModelForSequenceClassification.from_config(config)
+    
+    # Load state dict in chunks
         with safe_open(model_save_path, framework='pt') as f:
             tensor_names = f.keys()
-            state_dict = {name: f.get_tensor(name) for name in tensor_names}
-
-        model = AutoModelForSequenceClassification.from_config(config)
-        model.load_state_dict(state_dict)
+            state_dict = {}
+        
+        for name in tensor_names:
+            state_dict[name] = f.get_tensor(name)
+            
+            # Optionally, log the loaded tensor name to track progress
+            print(f"Loaded tensor: {name}")
+            
+            # Load state_dict into the model incrementally
+            model.load_state_dict(state_dict, strict=False)
 
         return model, tokenizer
 
