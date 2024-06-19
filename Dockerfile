@@ -8,7 +8,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y git
 
 # Clone the repository
-RUN git clone https://github.com/your-username/your-repository.git /app
+RUN git clone https://github.com/devDabbler/Resume_Cupid_CrewAI_HF_Llama3.git /app
 
 # Copy the current directory contents into the container at /app
 COPY . /app
