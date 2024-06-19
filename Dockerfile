@@ -17,7 +17,7 @@ RUN git clone https://$GITHUB_TOKEN@github.com/devDabbler/Resume_Cupid_CrewAI_HF
 COPY . /app
 
 # Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --default-timeout=100 --no-cache-dir -r requirements.txt --index-url https://pypi.org/simple
 
 # Make port 8501 available to the world outside this container
 EXPOSE 8501
