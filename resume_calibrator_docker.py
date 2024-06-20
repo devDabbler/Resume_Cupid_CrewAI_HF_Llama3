@@ -77,7 +77,7 @@ elif authentication_status:
         return "Unknown"
 
     def load_model_and_tokenizer():
-        model_path = os.getenv('MODEL_PATH', '/app/model')
+        model_path = os.getenv('MODEL_PATH', '/app/model/model')
         print(f"Loading model from: {model_path}")
         tokenizer = AutoTokenizer.from_pretrained(model_path)
         model = AutoModelForSequenceClassification.from_pretrained(model_path)
