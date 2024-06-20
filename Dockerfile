@@ -22,11 +22,13 @@ RUN git clone https://your_personal_access_token@github.com/devDabbler/Resume_Cu
 # Copy the model files
 COPY ./model /app/model
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies including nltk
+RUN pip install --no-cache-dir -r requirements.txt nltk
 
-# Verify nltk installation and download stopwords
+# Verify nltk installation
 RUN python -m pip show nltk
+
+# Download stopwords
 RUN python -m nltk.downloader stopwords
 
 # Run the application
