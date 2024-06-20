@@ -25,7 +25,8 @@ COPY ./model /app/model
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Download NLTK data
+# Verify nltk installation and download stopwords
+RUN python -m pip show nltk
 RUN python -m nltk.downloader stopwords
 
 # Run the application
