@@ -29,6 +29,7 @@ setup(
         'lazify<0.5.0,>=0.4.0',  # Required by chainlit
         'literalai',  # Align version with chainlit requirements
         'nest-asyncio<2.0.0,>=1.5.6',  # Required by chainlit
+        'nltk'
         'numpy'
         'pyjwt<3.0.0,>=2.8.0',  # Required by chainlit
         'python-multipart<0.0.10,>=0.0.9',  # Required by chainlit
