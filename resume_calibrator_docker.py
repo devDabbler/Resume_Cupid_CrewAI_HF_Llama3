@@ -6,7 +6,7 @@ import logging
 import fitz
 from pdfminer.high_level import extract_text as pdfminer_extract_text
 from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from datetime import datetime
 import json
 import torch
@@ -14,6 +14,7 @@ import yaml
 from tasks import log_run
 from utils import extract_experience_section, extract_skills_section
 import streamlit_authenticator as stauth
+from safetensors import safe_open
 from langchain_groq import ChatGroq  # Correct import
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -24,7 +25,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
 
 # Load environment variables
-load_dotenv()
+load_dotenv(find_dotenv())
 
 # Load the configuration file
 with open('config.yaml') as file:
@@ -53,7 +54,7 @@ elif authentication_status:
 
     logging.basicConfig(filename='resume_calibrator.log', level=logging.ERROR)
 
-    FEEDBACK_FILE = '/app/data/feedback_data.json'
+    FEEDBACK_FILE = r"/app/feedback_data.json"
 
     def load_feedback_data():
         if os.path.exists(FEEDBACK_FILE):
@@ -77,7 +78,7 @@ elif authentication_status:
         return "Unknown"
 
     def load_model_and_tokenizer():
-        model_path = os.getenv('MODEL_PATH', '/app/model/model')
+        model_path = '/app/model'  # Ensure this is the correct path to your model
         print(f"Loading model from: {model_path}")
         tokenizer = AutoTokenizer.from_pretrained(model_path)
         model = AutoModelForSequenceClassification.from_pretrained(model_path)
