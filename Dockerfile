@@ -28,5 +28,8 @@ EXPOSE 8501
 # Define environment variable
 ENV MODEL_PATH=/app/model
 
+# Download NLTK data
+RUN python -m nltk.downloader stopwords
+
 # Run app.py when the container launches
 CMD ["streamlit", "run", "resume_calibrator_docker.py"]
