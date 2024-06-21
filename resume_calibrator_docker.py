@@ -78,10 +78,12 @@ elif authentication_status:
         return "Unknown"
 
     def load_model_and_tokenizer():
-        model_path = '/app/model'  # Ensure this is the correct path to your model
+        model_path = '/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model'  # Update with the correct local path
+        model_name = 'bert-base-uncased'  # Update with the correct model name
         print(f"Loading model from: {model_path}")
-        tokenizer = AutoTokenizer.from_pretrained(model_path)
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForSequenceClassification.from_pretrained(model_path)
+    
         return model, tokenizer
 
     model, tokenizer = load_model_and_tokenizer()
