@@ -78,7 +78,7 @@ elif authentication_status:
         return "Unknown"
 
     def load_model_and_tokenizer():
-        model_path = '/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model'  # Update with the correct local path
+        model_path = '/app/model'  # Update to the path inside the Docker container
         print(f"Loading model from: {model_path}")
         tokenizer = BertTokenizer.from_pretrained(model_path)
         model = BertForSequenceClassification.from_pretrained(model_path)
