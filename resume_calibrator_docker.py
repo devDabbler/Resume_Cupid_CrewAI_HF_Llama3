@@ -58,10 +58,13 @@ elif authentication_status:
 
     def load_feedback_data():
         if os.path.exists(FEEDBACK_FILE):
-            with open(FEEDBACK_FILE, "r") as file:
-                content = file.read().strip()
-                if content:
-                    return json.loads(content)
+            try:
+                with open(FEEDBACK_FILE, "r") as file:
+                    content = file.read().strip()
+                    if content:
+                        return json.loads(content)
+            except json.JSONDecodeError:
+                logging.error("Error decoding JSON from feedback data file.")
         return []
 
     feedback_data = load_feedback_data()
