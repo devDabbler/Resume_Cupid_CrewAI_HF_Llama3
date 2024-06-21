@@ -5,7 +5,7 @@ import re
 import logging
 import fitz
 from pdfminer.high_level import extract_text as pdfminer_extract_text
-from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification
+from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime
 import json
@@ -79,10 +79,9 @@ elif authentication_status:
 
     def load_model_and_tokenizer():
         model_path = '/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model'  # Update with the correct local path
-        model_name = 'bert-base-uncased'  # Update with the correct model name
         print(f"Loading model from: {model_path}")
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSequenceClassification.from_pretrained(model_path)
+        tokenizer = BertTokenizer.from_pretrained(model_path)
+        model = BertForSequenceClassification.from_pretrained(model_path)
     
         return model, tokenizer
 
