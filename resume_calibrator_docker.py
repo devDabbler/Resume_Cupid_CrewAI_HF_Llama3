@@ -78,10 +78,10 @@ elif authentication_status:
         return "Unknown"
 
     def load_model_and_tokenizer():
-        model_path = '/app/model'  # Update to the path inside the Docker container
+        model_path = os.getenv('MODEL_PATH', '/app/model')
         print(f"Loading model from: {model_path}")
         tokenizer = BertTokenizer.from_pretrained(model_path)
-        model = BertForSequenceClassification.from_pretrained(model_path, num_labels=3)
+        model = BertForSequenceClassification.from_pretrained(model_path)
     
         return model, tokenizer
 
@@ -123,7 +123,6 @@ elif authentication_status:
         if unmatched_skills:
             for skill in unmatched_skills:
                 st.write(f"- {skill}")
-                st.write("  Recommendation: The candidate should focus on acquiring or improving this skill to become a stronger fit for the role. Consider taking online courses, working on relevant projects, or gaining practical experience in this area.")
         else:
             st.write("All required skills are matched.")
 
@@ -145,7 +144,7 @@ elif authentication_status:
             else:
                 for req_skill in required_skills:
                     similarity = calculate_semantic_similarity(skill, req_skill)
-                    if similarity > 0.7:
+                    if similarity > 0.6:  # Adjust the threshold as needed
                         matched_skills[skill] = similarity
                         break
 
@@ -172,7 +171,7 @@ elif authentication_status:
 
             for bullet_point in bullet_points:
                 similarity = calculate_semantic_similarity(bullet_point, job_description)
-                if similarity > 0.6:
+                if similarity > 0.5:  # Adjust the threshold as needed
                     relevant_experience[bullet_point] = similarity
 
         return relevant_experience
@@ -311,5 +310,3 @@ elif authentication_status:
             feedback_data.append(feedback_entry)
             save_feedback_data(feedback_data)
             st.success("Thank you for your feedback!")
-
-    authenticator.logout("Logout", "sidebar")
