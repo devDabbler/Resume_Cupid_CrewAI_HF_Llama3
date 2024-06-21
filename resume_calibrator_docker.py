@@ -81,7 +81,7 @@ elif authentication_status:
         model_path = '/app/model'  # Update to the path inside the Docker container
         print(f"Loading model from: {model_path}")
         tokenizer = BertTokenizer.from_pretrained(model_path)
-        model = BertForSequenceClassification.from_pretrained(model_path)
+        model = BertForSequenceClassification.from_pretrained(model_path, num_labels=3)
     
         return model, tokenizer
 
