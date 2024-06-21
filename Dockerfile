@@ -10,6 +10,9 @@ COPY requirements.txt .
 # Copy the entire current directory to the container
 COPY . .
 
+# Copy the config.toml file to the container
+COPY config.toml .
+
 # Install any dependencies specified in requirements.txt
 RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 
@@ -20,4 +23,4 @@ RUN pip install --no-cache-dir --default-timeout=1000 nltk && python -m nltk.dow
 COPY model /app/model
 
 # Run the application
-CMD ["streamlit", "run", "resume_calibrator_docker.py"]
+CMD ["streamlit", "run", "resume_calibrator_docker.py", "--server.address", "0.0.0.0", "--server.port", "8501"]

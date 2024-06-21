@@ -23,8 +23,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 # Streamlit UI setup
 st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
-st.set_option('server.address', '0.0.0.0')
-st.set_option('server.port', 8501)  # Update the port number if necessary
 
 # Load environment variables
 load_dotenv(find_dotenv())
