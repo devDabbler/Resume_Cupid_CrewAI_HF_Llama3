@@ -5,7 +5,7 @@ import re
 import logging
 import fitz
 from pdfminer.high_level import extract_text as pdfminer_extract_text
-from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime
 import json
@@ -77,13 +77,12 @@ elif authentication_status:
             return match.group(1)
         return "Unknown"
 
+    @st.cache_resource
     def load_model_and_tokenizer():
-        model_path = os.getenv('MODEL_PATH', '/app/model')
-        print(f"Loading model from: {model_path}")
-        tokenizer = BertTokenizer.from_pretrained(model_path)
-        config = BertConfig.from_pretrained(model_path, num_labels=3)  # Set num_labels to 3
-        model = BertForSequenceClassification.from_pretrained(model_path, config=config, ignore_mismatched_sizes=True)
-    
+        # Use BERT base uncased model from Hugging Face
+        model_path = "bert-base-uncased"
+        tokenizer = AutoTokenizer.from_pretrained(model_path)
+        model = AutoModelForSequenceClassification.from_pretrained(model_path, num_labels=3)
         return model, tokenizer
 
     model, tokenizer = load_model_and_tokenizer()
@@ -203,7 +202,7 @@ elif authentication_status:
 
         return ""
 
-    skills_keywords = ["skills", "technical skills", "professional skills", "key skills", "core competencies", "areas of expertise", "technical proficiencies", "technical competencies", "skills summary", "skills & competencies", "skills and competencies", "skills & proficiencies", "skills and proficiencies", "skills & strengths", "skills and strengths", "skills & abilities", "skills and abilities", "skills & qualifications", "skills and qualifications", "skills & experience", "skills and experience", "skills & knowledge", "skills and knowledge", "skills & expertise", "skills and expertise"]
+    skills_keywords = ["skills", "technical skills", "professional skills", "key skills", "core competencies", "technical proficiencies", "technical competencies", "skills summary", "skills & competencies", "skills and competencies", "skills & proficiencies", "skills and proficiencies", "skills & strengths", "skills and strengths", "skills & abilities", "skills and abilities", "skills & qualifications", "skills and qualifications", "skills & experience", "skills and experience", "skills & knowledge", "skills and knowledge", "skills & expertise", "skills and expertise"]
 
     def extract_resume_sections(resume):
         resume_skills = extract_skills_section(resume, skills_keywords)  # type: ignore
