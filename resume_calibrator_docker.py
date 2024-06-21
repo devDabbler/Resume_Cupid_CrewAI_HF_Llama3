@@ -81,7 +81,8 @@ elif authentication_status:
         model_path = os.getenv('MODEL_PATH', '/app/model')
         print(f"Loading model from: {model_path}")
         tokenizer = BertTokenizer.from_pretrained(model_path)
-        model = BertForSequenceClassification.from_pretrained(model_path)
+        config = BertConfig.from_pretrained(model_path, num_labels=3)  # Set num_labels to 3
+        model = BertForSequenceClassification.from_pretrained(model_path, config=config, ignore_mismatched_sizes=True)
     
         return model, tokenizer
 
