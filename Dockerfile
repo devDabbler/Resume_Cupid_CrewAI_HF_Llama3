@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 RUN pip install --no-cache-dir --default-timeout=1000 nltk && python -m nltk.downloader stopwords
 
 # Copy the local model files to the container
-COPY model /app/model
+COPY new_model /app/model
 
 # Run the application
 CMD ["streamlit", "run", "resume_calibrator_docker.py", "--server.address", "0.0.0.0", "--server.port", "8501"]
