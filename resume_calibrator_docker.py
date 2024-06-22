@@ -20,6 +20,16 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import platform
+import transformers
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, filename='resume_calibrator.log')
+
+# Log environment details
+logging.info(f"Python Version: {platform.python_version()}")
+logging.info(f"PyTorch Version: {torch.__version__}")
+logging.info(f"Transformers Version: {transformers.__version__}")
 
 # Streamlit UI setup
 st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
@@ -51,8 +61,6 @@ elif authentication_status == None:
 elif authentication_status:
     st.title("Resume Cupid")
     st.markdown("Use this app to help you decide if a candidate is a good fit for a specific role.")
-
-    logging.basicConfig(filename='resume_calibrator.log', level=logging.ERROR)
 
     FEEDBACK_FILE = r"/app/feedback_data.json"
 
@@ -194,14 +202,14 @@ elif authentication_status:
             if text.strip():
                 return text
         except Exception as e:
-            print(f"PyMuPDF extraction failed: {e}")
+            logging.error(f"PyMuPDF extraction failed: {e}")
 
         try:
             text = pdfminer_extract_text(pdf_path)
             if text.strip():
                 return text
         except Exception as e:
-            print(f"PDFMiner extraction failed: {e}")
+            logging.error(f"PDFMiner extraction failed: {e}")
 
         return ""
 
@@ -213,12 +221,21 @@ elif authentication_status:
         return resume_skills, resume_experience
 
     def predict_fitment(job_description, resume_text):
+        logging.info(f"Job Description: {job_description}")
+        logging.info(f"Resume Text: {resume_text}")
+        
         inputs = tokenizer(job_description + " " + resume_text, return_tensors="pt", padding=True, truncation=True)
         outputs = model(**inputs)
         logits = outputs.logits
         probabilities = torch.softmax(logits, dim=1)
-        fitment_score = torch.max(probabilities).item() * 100  # Convert to percentage
-        return fitment_score
+        predicted_class = torch.argmax(probabilities, dim=1).item()
+        
+        logging.info(f"Inputs: {inputs}")
+        logging.info(f"Logits: {logits}")
+        logging.info(f"Probabilities: {probabilities}")
+        logging.info(f"Predicted Class: {predicted_class}")
+        
+        return predicted_class
 
     with st.form(key='resume_form'):
         job_description = st.text_area("Paste the Job Description here. Make sure to include key aspects of the role required.", placeholder="Job description. This field should have at least 100 characters.")
