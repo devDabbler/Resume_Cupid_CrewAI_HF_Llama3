@@ -5,7 +5,7 @@ import re
 import logging
 import fitz
 from pdfminer.high_level import extract_text as pdfminer_extract_text
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime
 import json
@@ -90,14 +90,15 @@ elif authentication_status:
 
     @st.cache_resource
     def load_model_and_tokenizer():
-        # Use BERT base uncased model from Hugging Face
-        model_path = "bert-base-uncased"
-        tokenizer = AutoTokenizer.from_pretrained(model_path)
-        model = AutoModelForSequenceClassification.from_pretrained(model_path, num_labels=3)
+        # Use the local path to the model
+        model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model"
+        tokenizer = BertTokenizer.from_pretrained(model_path)
+        config = BertConfig.from_pretrained(model_path, num_labels=3)
+        model = BertForSequenceClassification.from_pretrained(model_path, config=config)
         return model, tokenizer
 
     model, tokenizer = load_model_and_tokenizer()
-
+    
     # Initialize the LLM
     llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
 

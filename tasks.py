@@ -5,9 +5,17 @@ from datetime import datetime
 import json
 import os
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+
 # Initialize Hugging Face pipelines
-skills_extractor = pipeline("ner", model="dslim/bert-base-NER")
-job_title_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+try:
+    skills_extractor = pipeline("ner", model="dslim/bert-base-NER")
+    job_title_classifier = pipeline("zero-shot-classification", model="/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model")  # Use the correct local path here
+    logging.info("Models loaded successfully")
+except Exception as e:
+    logging.error(f"Error loading models: {e}")
+    raise
 
 def log_run(input_data, output_data, log_file="run_logs.json"):
     log_entry = {

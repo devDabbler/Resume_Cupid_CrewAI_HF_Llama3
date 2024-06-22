@@ -2,7 +2,7 @@ import os
 import tempfile
 import streamlit as st
 from dotenv import load_dotenv, find_dotenv
-from transformers import TFAutoModelForSequenceClassification, AutoTokenizer
+from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
 import re
 import logging
 import fitz  # PyMuPDF
@@ -17,6 +17,8 @@ import tensorflow as tf
 from crewai import Crew
 from crew import Crew
 from langchain_groq import ChatGroq
+import platform
+import transformers
 
 # Streamlit UI setup
 st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
@@ -27,11 +29,21 @@ load_dotenv(find_dotenv())
 # Initialize the LLM
 llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
 
-# Load the BERT model and tokenizer from Hugging Face
+# Initialize logging
+logging.basicConfig(level=logging.INFO, filename='resume_calibrator.log')
+
+# Log environment details
+logging.info(f"Python Version: {platform.python_version()}")
+logging.info(f"TensorFlow Version: {tf.__version__}")
+logging.info(f"Transformers Version: {transformers.__version__}")
+
+# Load the BERT model and tokenizer from local path
 @st.cache_resource
 def load_model_and_tokenizer():
-    model = TFAutoModelForSequenceClassification.from_pretrained("bert-base-uncased")
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+    model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model"
+    tokenizer = BertTokenizer.from_pretrained(model_path)
+    config = BertConfig.from_pretrained(model_path, num_labels=3)  # Assuming the model has 3 labels
+    model = BertForSequenceClassification.from_pretrained(model_path, config=config)
     return model, tokenizer
 
 try:
@@ -40,9 +52,6 @@ except EnvironmentError as e:
     st.error(f"Error loading model: {e}")
     st.stop()
 
-# Initialize logging
-logging.basicConfig(filename='resume_calibrator.log', level=logging.ERROR)
-
 # Feedback data file
 FEEDBACK_FILE = "feedback_data.json"
 
@@ -50,10 +59,13 @@ FEEDBACK_FILE = "feedback_data.json"
 @st.cache_data
 def load_feedback_data():
     if os.path.exists(FEEDBACK_FILE):
-        with open(FEEDBACK_FILE, "r") as file:
-            content = file.read().strip()
-            if content:
-                return json.loads(content)
+        try:
+            with open(FEEDBACK_FILE, "r") as file:
+                content = file.read().strip()
+                if content:
+                    return json.loads(content)
+        except json.JSONDecodeError:
+            logging.error("Error decoding JSON from feedback data file.")
     return []
 
 feedback_data = load_feedback_data()
@@ -180,14 +192,14 @@ def read_all_pdf_pages(pdf_path):
         if text.strip():
             return text
     except Exception as e:
-        print(f"PyMuPDF extraction failed: {e}")
+        logging.error(f"PyMuPDF extraction failed: {e}")
 
     try:
         text = pdfminer_extract_text(pdf_path)
         if text.strip():
             return text
     except Exception as e:
-        print(f"PDFMiner extraction failed: {e}")
+        logging.error(f"PDFMiner extraction failed: {e}")
 
     return ""
 
@@ -198,10 +210,20 @@ def extract_resume_sections(resume):
     return resume_skills, resume_experience
 
 def predict_fitment(job_description, resume_text):
+    logging.info(f"Job Description: {job_description}")
+    logging.info(f"Resume Text: {resume_text}")
+    
     inputs = tokenizer(job_description + " " + resume_text, return_tensors="tf", padding=True, truncation=True)
     outputs = model(**inputs)
     logits = outputs.logits
+    probabilities = tf.nn.softmax(logits, axis=-1)
     predicted_class = tf.argmax(logits, axis=1).numpy().item()
+    
+    logging.info(f"Inputs: {inputs}")
+    logging.info(f"Logits: {logits}")
+    logging.info(f"Probabilities: {probabilities}")
+    logging.info(f"Predicted Class: {predicted_class}")
+    
     return predicted_class
 
 resume_first_name = "Unknown"
