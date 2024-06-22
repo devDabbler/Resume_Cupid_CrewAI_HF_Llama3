@@ -91,7 +91,7 @@ elif authentication_status:
     @st.cache_resource
     def load_model_and_tokenizer():
         # Use the local path to the model
-        model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model"
+        model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
         tokenizer = BertTokenizer.from_pretrained(model_path)
         config = BertConfig.from_pretrained(model_path, num_labels=3)
         model = BertForSequenceClassification.from_pretrained(model_path, config=config)
