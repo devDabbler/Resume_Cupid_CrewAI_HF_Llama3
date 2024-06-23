@@ -38,3 +38,5 @@ pandas
 huggingface_hub
 datasets
 pyYAML  
+clearml 
+onnxruntime

@@ -2,10 +2,9 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    image: your_image_name
+    container_name: resume_calibrator_app
+    volumes:
+      - /home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new:/app/model_new
     ports:
       - "8501:8501"
-    volumes:
-      - .:/app
-    environment:
-      - MODEL_PATH=/app/model_new

@@ -5,6 +5,7 @@ import re
 import logging
 import fitz
 from pdfminer.high_level import extract_text as pdfminer_extract_text
+from transformers import BertTokenizer
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime
 import json
@@ -13,7 +14,7 @@ from tasks import log_run, classify_job_title
 from utils import extract_experience_section, extract_skills_section
 import streamlit_authenticator as stauth
 from safetensors import safe_open
-from langchain_groq import ChatGroq  # Correct import
+from langchain_groq import ChatGroq
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -63,6 +64,19 @@ elif authentication_status == None:
 elif authentication_status:
     st.title("Resume Cupid")
     st.markdown("Use this app to help you decide if a candidate is a good fit for a specific role.")
+
+    @st.cache_resource
+    def load_tokenizer():
+        # Use the local path to the model
+        model_path = "/app/model_new"
+        tokenizer = BertTokenizer.from_pretrained(model_path)
+        
+        # Log tokenizer using ClearML
+        task.connect(tokenizer, name='bert_tokenizer')
+        
+        return tokenizer
+
+    tokenizer = load_tokenizer()
 
     FEEDBACK_FILE = r"/app/feedback_data.json"
 

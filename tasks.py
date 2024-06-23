@@ -3,11 +3,11 @@ import numpy as np
 from transformers import BertTokenizer
 
 # Load tokenizer
-model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
+model_path = "/app/model_new"
 tokenizer = BertTokenizer.from_pretrained(model_path)
 
 # Load ONNX model
-ort_session = ort.InferenceSession("/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new/bert_model.onnx")
+ort_session = ort.InferenceSession("/app/model_new/bert_model.onnx")
 
 def classify_job_title(job_description, resume_text):
     inputs = tokenizer(job_description + " " + resume_text, return_tensors="np", padding=True, truncation=True)
