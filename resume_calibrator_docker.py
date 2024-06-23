@@ -5,13 +5,11 @@ import re
 import logging
 import fitz
 from pdfminer.high_level import extract_text as pdfminer_extract_text
-from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime
 import json
-import torch
 import yaml
-from tasks import log_run
+from tasks import log_run, classify_job_title
 from utils import extract_experience_section, extract_skills_section
 import streamlit_authenticator as stauth
 from safetensors import safe_open
@@ -22,14 +20,18 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import platform
 import transformers
+from clearml import Task
+import onnxruntime as ort
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, filename='resume_calibrator.log')
 
 # Log environment details
 logging.info(f"Python Version: {platform.python_version()}")
-logging.info(f"PyTorch Version: {torch.__version__}")
 logging.info(f"Transformers Version: {transformers.__version__}")
+
+# Initialize ClearML task
+task = Task.init(project_name='resume_cupid', task_name='model_deployment')
 
 # Streamlit UI setup
 st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
@@ -88,17 +90,6 @@ elif authentication_status:
             return match.group(1)
         return "Unknown"
 
-    @st.cache_resource
-    def load_model_and_tokenizer():
-        # Use the local path to the model
-        model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
-        tokenizer = BertTokenizer.from_pretrained(model_path)
-        config = BertConfig.from_pretrained(model_path, num_labels=3)
-        model = BertForSequenceClassification.from_pretrained(model_path, config=config)
-        return model, tokenizer
-
-    model, tokenizer = load_model_and_tokenizer()
-    
     # Initialize the LLM
     llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
 
@@ -225,18 +216,7 @@ elif authentication_status:
         logging.info(f"Job Description: {job_description}")
         logging.info(f"Resume Text: {resume_text}")
         
-        inputs = tokenizer(job_description + " " + resume_text, return_tensors="pt", padding=True, truncation=True)
-        outputs = model(**inputs)
-        logits = outputs.logits
-        probabilities = torch.softmax(logits, dim=1)
-        predicted_class = torch.argmax(probabilities, dim=1).item()
-        
-        logging.info(f"Inputs: {inputs}")
-        logging.info(f"Logits: {logits}")
-        logging.info(f"Probabilities: {probabilities}")
-        logging.info(f"Predicted Class: {predicted_class}")
-        
-        return predicted_class
+        return classify_job_title(job_description, resume_text)
 
     with st.form(key='resume_form'):
         job_description = st.text_area("Paste the Job Description here. Make sure to include key aspects of the role required.", placeholder="Job description. This field should have at least 100 characters.")
