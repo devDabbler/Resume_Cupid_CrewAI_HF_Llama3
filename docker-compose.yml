@@ -10,5 +10,6 @@ services:
       - "8501:8501"
     volumes:
       - .:/app
+      - ./model_new:/app/model_new
     environment:
-      - MODEL_PATH=/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new
+      - MODEL_PATH=/app/model_new
