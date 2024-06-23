@@ -1,10 +1,13 @@
 import onnxruntime as ort
 import numpy as np
-from transformers import BertTokenizer
+from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
 
 # Load tokenizer
-model_path = "/app/model_new"
+model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
+
 tokenizer = BertTokenizer.from_pretrained(model_path)
+config = BertConfig.from_pretrained(model_path, num_labels=3)
+model = BertForSequenceClassification.from_pretrained(model_path, config=config)
 
 # Load ONNX model
 ort_session = ort.InferenceSession("/app/model_new/bert_model.onnx")

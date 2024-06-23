@@ -5,7 +5,7 @@ import re
 import logging
 import fitz
 from pdfminer.high_level import extract_text as pdfminer_extract_text
-from transformers import BertTokenizer
+from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime
 import json
@@ -66,17 +66,15 @@ elif authentication_status:
     st.markdown("Use this app to help you decide if a candidate is a good fit for a specific role.")
 
     @st.cache_resource
-    def load_tokenizer():
-        # Use the local path to the model
-        model_path = "/app/model_new"
+    def load_model_and_tokenizer():
+        model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
         tokenizer = BertTokenizer.from_pretrained(model_path)
+        config = BertConfig.from_pretrained(model_path, num_labels=3)
+        model = BertForSequenceClassification.from_pretrained(model_path, config=config)
         
-        # Log tokenizer using ClearML
-        task.connect(tokenizer, name='bert_tokenizer')
-        
-        return tokenizer
+        return model, tokenizer
 
-    tokenizer = load_tokenizer()
+    model, tokenizer = load_model_and_tokenizer()
 
     FEEDBACK_FILE = r"/app/feedback_data.json"
 
