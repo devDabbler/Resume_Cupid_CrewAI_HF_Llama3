@@ -1,9 +1,17 @@
+import os
 import onnxruntime as ort
 import numpy as np
 from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
 
-# Load tokenizer
+# Define the model path
 model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
+
+# Check if vocab.txt exists in the model path
+vocab_file = os.path.join(model_path, "vocab.txt")
+if not os.path.isfile(vocab_file):
+    raise FileNotFoundError(f"vocab.txt not found in {model_path}")
+
+# Initialize the tokenizer and model
 tokenizer = BertTokenizer.from_pretrained(model_path)
 config = BertConfig.from_pretrained(model_path, num_labels=3)
 model = BertForSequenceClassification.from_pretrained(model_path, config=config)
