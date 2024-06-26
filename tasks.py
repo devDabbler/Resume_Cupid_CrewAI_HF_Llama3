@@ -18,6 +18,15 @@ for file_name in required_files:
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"{file_name} not found in {model_path}")
 
+# Debug: Print file paths to ensure they are not None
+vocab_file_path = os.path.join(model_path, "vocab.txt")
+tokenizer_config_path = os.path.join(model_path, "tokenizer_config.json")
+special_tokens_map_path = os.path.join(model_path, "special_tokens_map.json")
+
+print(f"vocab_file_path: {vocab_file_path}")
+print(f"tokenizer_config_path: {tokenizer_config_path}")
+print(f"special_tokens_map_path: {special_tokens_map_path}")
+
 # Initialize the tokenizer and model
 tokenizer = BertTokenizer.from_pretrained(model_path)
 config = BertConfig.from_pretrained(model_path, num_labels=3)
