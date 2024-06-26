@@ -6,8 +6,11 @@ from transformers import BertTokenizer, BertConfig, BertForSequenceClassificatio
 # Define the model path
 model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
 
-# Check if vocab.txt exists in the model path
+# Debug: Print model_path and check if vocab.txt exists
+print(f"Model path: {model_path}")
 vocab_file = os.path.join(model_path, "vocab.txt")
+print(f"Vocab file path: {vocab_file}")
+
 if not os.path.isfile(vocab_file):
     raise FileNotFoundError(f"vocab.txt not found in {model_path}")
 
