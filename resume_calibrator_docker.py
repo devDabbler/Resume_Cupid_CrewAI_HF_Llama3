@@ -11,7 +11,7 @@ from datetime import datetime
 import json
 import torch
 import yaml
-from tasks import log_run
+from tasks import log_run, classify_job_title
 from utils import extract_experience_section, extract_skills_section
 import streamlit_authenticator as stauth
 from safetensors import safe_open

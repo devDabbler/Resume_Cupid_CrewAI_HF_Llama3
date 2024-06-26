@@ -1,3 +1,5 @@
+import datetime
+import json
 import os
 import onnxruntime as ort
 import numpy as np
@@ -39,3 +41,22 @@ def classify_job_title(job_description, resume_text):
 def softmax(x, axis=None):
     e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
     return e_x / np.sum(e_x, axis=axis, keepdims=True)
+
+def log_run(input_data, output_data):
+    log_entry = {
+        "input": input_data,
+        "output": output_data,
+        "timestamp": datetime.now().isoformat()
+    }
+    log_file = "/app/run_logs.json"
+    try:
+        if os.path.exists(log_file):
+            with open(log_file, "r") as file:
+                logs = json.load(file)
+        else:
+            logs = []
+        logs.append(log_entry)
+        with open(log_file, "w") as file:
+            json.dump(logs, file, indent=4)
+    except Exception as e:
+        print(f"Error logging run: {e}")
