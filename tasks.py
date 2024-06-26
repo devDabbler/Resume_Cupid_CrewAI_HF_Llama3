@@ -10,11 +10,13 @@ model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
 print(f"Model path: {model_path}")
 print(f"Files in the model path: {os.listdir(model_path)}")
 
-vocab_file = os.path.join(model_path, "vocab.txt")
-print(f"Vocab file path: {vocab_file}")
-
-if not os.path.isfile(vocab_file):
-    raise FileNotFoundError(f"vocab.txt not found in {model_path}")
+# Check for specific files required by BertTokenizer
+required_files = ["vocab.txt", "tokenizer_config.json", "special_tokens_map.json"]
+for file_name in required_files:
+    file_path = os.path.join(model_path, file_name)
+    print(f"Checking for {file_name}: {file_path}")
+    if not os.path.isfile(file_path):
+        raise FileNotFoundError(f"{file_name} not found in {model_path}")
 
 # Initialize the tokenizer and model
 tokenizer = BertTokenizer.from_pretrained(model_path)
