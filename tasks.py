@@ -3,34 +3,26 @@ import onnxruntime as ort
 import numpy as np
 from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
 
-# Define the model path
 model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
 
-# Debug: Print model_path and list all files in the directory
+# Ensure the model path and files exist
 print(f"Model path: {model_path}")
-print(f"Files in the model path: {os.listdir(model_path)}")
+print(f"Files in model path: {os.listdir(model_path)}")
 
-# Check for specific files required by BertTokenizer
+# Check if the required files exist
 required_files = ["vocab.txt", "tokenizer_config.json", "special_tokens_map.json"]
 for file_name in required_files:
     file_path = os.path.join(model_path, file_name)
-    print(f"Checking for {file_name}: {file_path}")
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"{file_name} not found in {model_path}")
 
-# Debug: Print file paths to ensure they are not None
-vocab_file_path = os.path.join(model_path, "vocab.txt")
-tokenizer_config_path = os.path.join(model_path, "tokenizer_config.json")
-special_tokens_map_path = os.path.join(model_path, "special_tokens_map.json")
-
-print(f"vocab_file_path: {vocab_file_path}")
-print(f"tokenizer_config_path: {tokenizer_config_path}")
-print(f"special_tokens_map_path: {special_tokens_map_path}")
-
 # Initialize the tokenizer and model
-tokenizer = BertTokenizer.from_pretrained(model_path)
-config = BertConfig.from_pretrained(model_path, num_labels=3)
-model = BertForSequenceClassification.from_pretrained(model_path, config=config)
+try:
+    tokenizer = BertTokenizer.from_pretrained(model_path)
+    config = BertConfig.from_pretrained(model_path, num_labels=3)
+    model = BertForSequenceClassification.from_pretrained(model_path, config=config)
+except Exception as e:
+    print(f"Error loading model: {e}")
 
 # Load ONNX model
 ort_session = ort.InferenceSession("/app/model_new/bert_model.onnx")

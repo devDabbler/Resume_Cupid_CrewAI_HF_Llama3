@@ -93,32 +93,21 @@ elif authentication_status:
             return match.group(1)
         return "Unknown"
 
-@st.cache_resource
-def load_model_and_tokenizer():
-    # Use the local path to the model
-    model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
-    
-    # Debug: Print model_path and list all files in the directory
-    print(f"Model path: {model_path}")
-    print(f"Files in the model path: {os.listdir(model_path)}")
-    
-    vocab_file = os.path.join(model_path, "vocab.txt")
-    print(f"Vocab file path: {vocab_file}")
-    
-    if not os.path.isfile(vocab_file):
-        raise FileNotFoundError(f"vocab.txt not found in {model_path}")
+    @st.cache_resource
+    def load_model_and_tokenizer():
+        # Use the local path to the model
+        model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
+        tokenizer = BertTokenizer.from_pretrained(model_path)
+        config = BertConfig.from_pretrained(model_path, num_labels=3)
+        model = BertForSequenceClassification.from_pretrained(model_path, config=config)
+        
+        # Log model and tokenizer using ClearML
+        task.connect(model, name='bert_model')
+        task.connect(tokenizer, name='bert_tokenizer')
+        
+        return model, tokenizer
 
-    tokenizer = BertTokenizer.from_pretrained(model_path)
-    config = BertConfig.from_pretrained(model_path, num_labels=3)
-    model = BertForSequenceClassification.from_pretrained(model_path, config=config)
-
-    return model, tokenizer
-
-try:
     model, tokenizer = load_model_and_tokenizer()
-except EnvironmentError as e:
-    st.error(f"Error loading model: {e}")
-    st.stop()
     
     # Initialize the LLM
     llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
