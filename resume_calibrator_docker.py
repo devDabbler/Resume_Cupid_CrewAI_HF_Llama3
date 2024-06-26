@@ -1,4 +1,10 @@
 import os
+print("Contents of /app directory:")
+print(os.listdir("/app"))
+print("\nContents of tasks.py:")
+with open("/app/tasks.py", "r") as f:
+    print(f.read())
+
 import tempfile
 import streamlit as st
 import re
@@ -11,11 +17,11 @@ from datetime import datetime
 import json
 import torch
 import yaml
-from tasks import log_run, classify_job_title, softmax
+from tasks import classify_job_title
 from utils import extract_experience_section, extract_skills_section
 import streamlit_authenticator as stauth
 from safetensors import safe_open
-from langchain_groq import ChatGroq  # Correct import
+from langchain_groq import ChatGroq
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -24,6 +30,26 @@ import platform
 import transformers
 from clearml import Task
 import onnxruntime as ort
+
+# Define log_run function here
+def log_run(input_data, output_data):
+    log_entry = {
+        "input": input_data,
+        "output": output_data,
+        "timestamp": datetime.now().isoformat()
+    }
+    log_file = "/app/run_logs.json"
+    try:
+        if os.path.exists(log_file):
+            with open(log_file, "r") as file:
+                logs = json.load(file)
+        else:
+            logs = []
+        logs.append(log_entry)
+        with open(log_file, "w") as file:
+            json.dump(logs, file, indent=4)
+    except Exception as e:
+        print(f"Error logging run: {e}")
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, filename='resume_calibrator.log')
@@ -93,22 +119,6 @@ elif authentication_status:
             return match.group(1)
         return "Unknown"
 
-    #@st.cache_resource
-    #def load_model_and_tokenizer():
-        # Use the local path to the model
-        model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
-        tokenizer = BertTokenizer.from_pretrained(model_path)
-        config = BertConfig.from_pretrained(model_path, num_labels=3)
-        model = BertForSequenceClassification.from_pretrained(model_path, config=config)
-        
-        # Log model and tokenizer using ClearML
-        task.connect(model, name='bert_model')
-        task.connect(tokenizer, name='bert_tokenizer')
-        
-        return model, tokenizer
-
-    #model, tokenizer = load_model_and_tokenizer()
-    
     # Initialize the LLM
     llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
 
@@ -118,7 +128,7 @@ elif authentication_status:
         return weights
 
     def calculate_fitment_score(predicted_class):
-    # Map the predicted class to a fitment score
+        # Map the predicted class to a fitment score
         if predicted_class == 0:
             return 33.33  # Low fitment
         elif predicted_class == 1:
