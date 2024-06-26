@@ -24,7 +24,6 @@ import platform
 import transformers
 from clearml import Task
 import onnxruntime as ort
-import torch.onnx as onnx
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, filename='resume_calibrator.log')
@@ -98,6 +97,12 @@ elif authentication_status:
     def load_model_and_tokenizer():
         # Use the local path to the model
         model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
+        
+        # Ensure vocab.txt exists
+        vocab_file = os.path.join(model_path, "vocab.txt")
+        if not os.path.isfile(vocab_file):
+            raise FileNotFoundError(f"vocab.txt not found in {model_path}")
+        
         tokenizer = BertTokenizer.from_pretrained(model_path)
         config = BertConfig.from_pretrained(model_path, num_labels=3)
         model = BertForSequenceClassification.from_pretrained(model_path, config=config)
@@ -107,12 +112,6 @@ elif authentication_status:
         task.connect(tokenizer, name='bert_tokenizer')
         
         return model, tokenizer
-
-    def convert_to_onnx(model):
-        onnx_model_path = "/app/model/bert_model.onnx"
-        dummy_input = torch.zeros(1, 512, dtype=torch.long)  # Adjust input shape as necessary
-        onnx.export(model, dummy_input, onnx_model_path, opset_version=11, input_names=['input'], output_names=['output'])
-        logging.info(f"Model converted to ONNX format at {onnx_model_path}")
 
     model, tokenizer = load_model_and_tokenizer()
     
@@ -298,9 +297,6 @@ elif authentication_status:
             weights = calculate_weights(skill_rankings)
 
             fitment_score = predict_fitment(job_description, resume)
-
-            # Convert model to ONNX format
-            convert_to_onnx(model)
 
             # Use the LLM for additional processing if needed
             llm_response = llm.predict(fitment_score)  # Example usage
