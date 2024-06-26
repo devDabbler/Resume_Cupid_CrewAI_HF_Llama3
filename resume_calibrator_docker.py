@@ -11,7 +11,7 @@ from datetime import datetime
 import json
 import torch
 import yaml
-from tasks import log_run, classify_job_title
+from tasks import log_run, classify_job_title, softmax
 from utils import extract_experience_section, extract_skills_section
 import streamlit_authenticator as stauth
 from safetensors import safe_open
@@ -93,8 +93,8 @@ elif authentication_status:
             return match.group(1)
         return "Unknown"
 
-    @st.cache_resource
-    def load_model_and_tokenizer():
+    #@st.cache_resource
+    #def load_model_and_tokenizer():
         # Use the local path to the model
         model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
         tokenizer = BertTokenizer.from_pretrained(model_path)
@@ -107,7 +107,7 @@ elif authentication_status:
         
         return model, tokenizer
 
-    model, tokenizer = load_model_and_tokenizer()
+    #model, tokenizer = load_model_and_tokenizer()
     
     # Initialize the LLM
     llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
@@ -117,11 +117,14 @@ elif authentication_status:
         weights = [rank / total_ranks for rank in rankings]
         return weights
 
-    def calculate_fitment_score(individual_scores, weights):
-        total_score = sum(score * weight for score, weight in zip(individual_scores, weights))
-        max_score = sum(weights)
-        fitment_percentage = total_score * 100 / max_score
-        return fitment_percentage
+    def calculate_fitment_score(predicted_class):
+    # Map the predicted class to a fitment score
+        if predicted_class == 0:
+            return 33.33  # Low fitment
+        elif predicted_class == 1:
+            return 66.67  # Medium fitment
+        else:
+            return 100.0  # High fitment
 
     def display_results(fitment_score, matched_skills, unmatched_skills, relevant_experience):
         st.subheader("Fitment Score:")
@@ -234,18 +237,11 @@ elif authentication_status:
     def predict_fitment(job_description, resume_text):
         logging.info(f"Job Description: {job_description}")
         logging.info(f"Resume Text: {resume_text}")
-        
-        inputs = tokenizer(job_description + " " + resume_text, return_tensors="pt", padding=True, truncation=True)
-        outputs = model(**inputs)
-        logits = outputs.logits
-        probabilities = torch.softmax(logits, dim=1)
-        predicted_class = torch.argmax(probabilities, dim=1).item()
-        
-        logging.info(f"Inputs: {inputs}")
-        logging.info(f"Logits: {logits}")
-        logging.info(f"Probabilities: {probabilities}")
+    
+        predicted_class = classify_job_title(job_description, resume_text)
+    
         logging.info(f"Predicted Class: {predicted_class}")
-        
+    
         return predicted_class
 
     with st.form(key='resume_form'):
@@ -290,7 +286,8 @@ elif authentication_status:
             parameters = [skill1, skill2, skill3, skill4, skill5, f"{min_experience} or more years of experience"]
             weights = calculate_weights(skill_rankings)
 
-            fitment_score = predict_fitment(job_description, resume)
+            predicted_class = predict_fitment(job_description, resume)
+            fitment_score = calculate_fitment_score(predicted_class)
 
             # Use the LLM for additional processing if needed
             llm_response = llm.predict(fitment_score)  # Example usage

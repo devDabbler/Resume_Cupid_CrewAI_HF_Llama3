@@ -1,9 +1,9 @@
-import datetime
-import json
 import os
 import onnxruntime as ort
 import numpy as np
 from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
+from datetime import datetime
+import json
 
 model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
 
