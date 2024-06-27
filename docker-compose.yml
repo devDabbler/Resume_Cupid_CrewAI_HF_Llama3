@@ -11,4 +11,4 @@ services:
     environment:
       - MODEL_PATH=/app/model_new
     volumes:
-      - /home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new:/app/model_new
+      - ./model_new:/app/model_new

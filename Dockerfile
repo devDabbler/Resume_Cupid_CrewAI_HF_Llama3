@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 RUN pip install --no-cache-dir --default-timeout=1000 nltk && python -m nltk.downloader stopwords
 
 COPY . .
+COPY ./model_new /app/model_new
 
 RUN chmod -R 755 /app
 
