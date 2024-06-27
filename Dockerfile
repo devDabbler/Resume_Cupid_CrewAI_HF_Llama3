@@ -13,11 +13,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the working directory contents into the container
 COPY . .
 
+# Ensure the .env file is copied to the container
+COPY .env .env
+
 # Make port 8501 available to the world outside this container
 EXPOSE 8501
 
 # Define environment variable
-ENV NAME World
+ENV MODEL_PATH /app/model_new
 
 # Run the application
 CMD ["streamlit", "run", "resume_calibrator_docker.py"]

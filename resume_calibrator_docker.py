@@ -169,7 +169,7 @@ elif authentication_status:
             section_start = experience_section.find(title)
             section_end = experience_section.find('\n\n', section_start)
             if section_end == -1:
-                section_end = len(experience_section)
+                section_end = len(experience_section) 
 
             section_text = experience_section[section_start:section_end]
             bullet_points = bullet_point_pattern.findall(section_text)
@@ -245,51 +245,61 @@ elif authentication_status:
 
         submitted = st.form_submit_button('Submit')
 
-    resume_first_name = "Unknown"
+        if submitted:
+            if resume_file is not None:
+                # Read the resume file content
+                resume_text = resume_file.read()
+                # Call the classify_job_title function (modify as needed to process resume_text properly)
+                predicted_class = classify_job_title(job_description, resume_text)
+                st.write(f'The predicted class for the given job description and resume is: {predicted_class}')
+            else:
+                st.error("Please upload a resume file.")
 
-    if submitted and resume_file is not None and len(job_description) > 100:
-        try:
-            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                tmp_file.write(resume_file.read())
-                resume_file_path = tmp_file.name
+            resume_first_name = "Unknown"
 
-            resume = read_all_pdf_pages(resume_file_path)
-            os.unlink(resume_file_path)
+            if submitted and resume_file is not None and len(job_description) > 100:
+                try:
+                    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                        tmp_file.write(resume_file.read())
+                        resume_file_path = tmp_file.name
 
-            resume_first_name = extract_first_name(resume)
+                    resume = read_all_pdf_pages(resume_file_path)
+                    os.unlink(resume_file_path)
 
-            resume_skills, resume_experience = extract_resume_sections(resume)
+                    resume_first_name = extract_first_name(resume)
 
-            matched_skills, unmatched_skills = analyze_skills(resume_skills, job_description)
-            relevant_experience = analyze_experience(resume_experience, job_description)
+                    resume_skills, resume_experience = extract_resume_sections(resume)
 
-            parameters = [skill1, skill2, skill3, skill4, skill5, f"{min_experience} or more years of experience"]
-            weights = calculate_weights(skill_rankings)
+                    matched_skills, unmatched_skills = analyze_skills(resume_skills, job_description)
+                    relevant_experience = analyze_experience(resume_experience, job_description)
 
-            predicted_class = predict_fitment(job_description, resume)
-            fitment_score = calculate_fitment_score(predicted_class)
+                    parameters = [skill1, skill2, skill3, skill4, skill5, f"{min_experience} or more years of experience"]
+                    weights = calculate_weights(skill_rankings)
 
-            # Use the LLM for additional processing if needed
-            llm_response = llm.predict(fitment_score)  # Example usage
+                    predicted_class = predict_fitment(job_description, resume)
+                    fitment_score = calculate_fitment_score(predicted_class)
 
-            input_data = {
-                "job_description": job_description,
-                "resume": resume,
-                "role": role,
-                "parameters": parameters,
-                "weights": weights
-            }
-            output_data = {"result": fitment_score}
-            
-            print("Result:", fitment_score)
-            display_results(fitment_score, matched_skills, unmatched_skills, relevant_experience)
+                    # Use the LLM for additional processing if needed
+                    llm_response = llm.predict(fitment_score)  # Example usage
 
-        except Exception as e:
-            st.error(f"Failed to process the request: {str(e)}")
-            logging.error(f"Failed to process the request: {str(e)}")
-            logging.exception(e)
-    else:
-        st.write("Awaiting input and file upload...")
+                    input_data = {
+                        "job_description": job_description,
+                        "resume": resume,
+                        "role": role,
+                        "parameters": parameters,
+                        "weights": weights
+                    }
+                    output_data = {"result": fitment_score}
+
+                    print("Result:", fitment_score)
+                    display_results(fitment_score, matched_skills, unmatched_skills, relevant_experience)
+
+                except Exception as e:
+                    st.error(f"Failed to process the request: {str(e)}")
+                    logging.error(f"Failed to process the request: {str(e)}")
+                    logging.exception(e)
+            else:
+                st.write("Awaiting input and file upload...")
 
     with st.form(key='feedback_form'):
         st.subheader("Feedback")

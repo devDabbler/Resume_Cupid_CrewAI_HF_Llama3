@@ -3,14 +3,14 @@ import onnxruntime as ort
 import numpy as np
 from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
 
-model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
+model_path = os.getenv('MODEL_PATH', '/app/model_new')
 
 # Ensure the model path and files exist
 print(f"Model path: {model_path}")
 print(f"Files in model path: {os.listdir(model_path)}")
 
 # Check if the required files exist
-required_files = ["vocab.txt", "tokenizer_config.json", "special_tokens_map.json", "pytorch_model.bin"]
+required_files = ["vocab.txt", "tokenizer_config.json", "special_tokens_map.json"]
 for file_name in required_files:
     file_path = os.path.join(model_path, file_name)
     if not os.path.isfile(file_path):
@@ -29,15 +29,7 @@ ort_session = ort.InferenceSession(os.path.join(model_path, "bert_model.onnx"))
 
 def classify_job_title(job_description, resume_text):
     inputs = tokenizer(job_description + " " + resume_text, return_tensors="np", padding=True, truncation=True)
-    ort_inputs = {
-        ort_session.get_inputs()[0].name: inputs['input_ids'].astype(np.int64),
-        ort_session.get_inputs()[1].name: inputs['attention_mask'].astype(np.int64),
-        ort_session.get_inputs()[2].name: inputs['token_type_ids'].astype(np.int64)
-    }
-
-    print(f"Input shape to ONNX model: {ort_inputs[ort_session.get_inputs()[0].name].shape}")
-    print(f"Attention mask shape to ONNX model: {ort_inputs[ort_session.get_inputs()[1].name].shape}")
-    
+    ort_inputs = {ort_session.get_inputs()[0].name: inputs['input_ids'].astype(np.int64)}
     ort_outs = ort_session.run(None, ort_inputs)
     logits = ort_outs[0]
     probabilities = softmax(logits, axis=1)
@@ -47,6 +39,3 @@ def classify_job_title(job_description, resume_text):
 def softmax(x, axis=None):
     e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
     return e_x / np.sum(e_x, axis=axis, keepdims=True)
-
-print("Tasks module loaded successfully.")
-
