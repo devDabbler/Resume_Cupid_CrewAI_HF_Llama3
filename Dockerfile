@@ -16,11 +16,16 @@ COPY . .
 # Ensure the .env file is copied to the container
 COPY .env .env
 
+# Install NLTK and download required resources
+RUN pip install nltk
+RUN python -m nltk.downloader punkt
+RUN python -m nltk.downloader stopwords
+
 # Make port 8501 available to the world outside this container
 EXPOSE 8501
 
 # Define environment variable
-ENV MODEL_PATH /app/model_new
+ENV NAME World
 
 # Run the application
 CMD ["streamlit", "run", "resume_calibrator_docker.py"]
