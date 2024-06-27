@@ -25,11 +25,14 @@ except Exception as e:
     print(f"Error loading model: {e}")
 
 # Load ONNX model
-ort_session = ort.InferenceSession(os.path.join(model_path, "bert_model.onnx"))
+ort_session = ort.InferenceSession(os.path.path(model_path, "bert_model.onnx"))
 
 def classify_job_title(job_description, resume_text):
     inputs = tokenizer(job_description + " " + resume_text, return_tensors="np", padding=True, truncation=True)
-    ort_inputs = {ort_session.get_inputs()[0].name: inputs['input_ids'].astype(np.int64)}
+    ort_inputs = {
+        'input_ids': inputs['input_ids'].astype(np.int64),
+        'attention_mask': inputs['attention_mask'].astype(np.int64)
+    }
     ort_outs = ort_session.run(None, ort_inputs)
     logits = ort_outs[0]
     probabilities = softmax(logits, axis=1)
