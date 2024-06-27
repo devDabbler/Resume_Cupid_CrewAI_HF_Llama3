@@ -1,7 +1,7 @@
 streamlit_authenticator
 streamlit
 python-dotenv
-transformers==4.39.3
+transformers>=4.41.2
 torch
 tenacity
 pymupdf
