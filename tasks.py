@@ -28,32 +28,27 @@ except Exception as e:
 ort_session = ort.InferenceSession(os.path.join(model_path, "bert_model.onnx"))
 
 def classify_job_title(job_description, resume_text):
+    # Print inputs for debugging
+    print(f"Job Description: {job_description}")
+    print(f"Resume Text: {resume_text}")
+
     inputs = tokenizer(job_description + " " + resume_text, return_tensors="np", padding=True, truncation=True)
-    
-    # Dynamically determine the sequence length
-    max_seq_len = ort_session.get_inputs()[0].shape[1]
-    
-    input_ids = np.zeros((1, max_seq_len), dtype=np.int64)
-    attention_mask = np.zeros((1, max_seq_len), dtype=np.int64)
-    token_type_ids = np.zeros((1, max_seq_len), dtype=np.int64)
-
-    input_len = min(inputs['input_ids'].shape[1], max_seq_len)
-
-    input_ids[0, :input_len] = inputs['input_ids'][0, :input_len]
-    attention_mask[0, :input_len] = inputs['attention_mask'][0, :input_len]
-    if 'token_type_ids' in inputs:
-        token_type_ids[0, :input_len] = inputs['token_type_ids'][0, :input_len]
-
     ort_inputs = {
-        'input_ids': input_ids,
-        'attention_mask': attention_mask,
-        'token_type_ids': token_type_ids
+        ort_session.get_inputs()[0].name: inputs['input_ids'].astype(np.int64),
+        ort_session.get_inputs()[1].name: inputs['attention_mask'].astype(np.int64),
+        ort_session.get_inputs()[2].name: inputs['token_type_ids'].astype(np.int64)
     }
-    
+
     ort_outs = ort_session.run(None, ort_inputs)
     logits = ort_outs[0]
     probabilities = softmax(logits, axis=1)
     predicted_class = np.argmax(probabilities, axis=1).item()
+
+    # Print outputs for debugging
+    print(f"Logits: {logits}")
+    print(f"Probabilities: {probabilities}")
+    print(f"Predicted Class: {predicted_class}")
+
     return predicted_class
 
 def softmax(x, axis=None):
