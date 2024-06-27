@@ -28,6 +28,14 @@ except Exception as e:
 onnx_model_path = os.path.join(model_path, "bert_model.onnx")
 ort_session = ort.InferenceSession(onnx_model_path)
 
+# Print ONNX model input requirements
+input_name = ort_session.get_inputs()[0].name
+input_shape = ort_session.get_inputs()[0].shape
+input_type = ort_session.get_inputs()[0].type
+print(f"ONNX Model Input Name: {input_name}")
+print(f"ONNX Model Input Shape: {input_shape}")
+print(f"ONNX Model Input Type: {input_type}")
+
 def classify_job_title(job_description, resume_text):
     inputs = tokenizer(job_description + " " + resume_text, return_tensors="np", padding=True, truncation=True)
     ort_inputs = {
