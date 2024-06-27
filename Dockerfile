@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Ensure the .env file is copied to the container
-COPY .env .env
+COPY /home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/.env .env
 
 # Make port 8501 available to the world outside this container
 EXPOSE 8501
