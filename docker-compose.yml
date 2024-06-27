@@ -12,5 +12,3 @@ services:
       - "8501:8501"
     env_file:
       - .env
-    environment:
-      - MODEL_PATH=/app/model_new
