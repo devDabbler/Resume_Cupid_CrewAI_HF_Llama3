@@ -13,9 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the working directory contents into the container
 COPY . .
 
-# Ensure the .env file is copied to the container
-COPY .env .env
-
 # Make port 8501 available to the world outside this container
 EXPOSE 8501
 
