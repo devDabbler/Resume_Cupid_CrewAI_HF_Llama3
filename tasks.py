@@ -21,6 +21,7 @@ try:
     tokenizer = BertTokenizer.from_pretrained(model_path)
     config = BertConfig.from_pretrained(model_path, num_labels=3)
     model = BertForSequenceClassification.from_pretrained(model_path, config=config)
+    print("Model and tokenizer loaded successfully.")
 except Exception as e:
     print(f"Error loading model: {e}")
 
