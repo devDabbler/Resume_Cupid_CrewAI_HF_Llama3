@@ -2,10 +2,8 @@ import os
 import onnxruntime as ort
 import numpy as np
 from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
-from datetime import datetime
-import json
 
-model_path = "/home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new"
+model_path = os.getenv('MODEL_PATH', '/app/model_new')
 
 # Ensure the model path and files exist
 print(f"Model path: {model_path}")
@@ -41,3 +39,7 @@ def classify_job_title(job_description, resume_text):
 def softmax(x, axis=None):
     e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
     return e_x / np.sum(e_x, axis=axis, keepdims=True)
+
+def log_run(input_data, output_data):
+    # Assuming this function logs data to a logging service or file
+    pass

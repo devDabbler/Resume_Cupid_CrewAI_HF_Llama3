@@ -5,10 +5,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: resume_calibrator_app
+    volumes:
+      - .:/app
+      - /home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new:/app/model_new
     ports:
       - "8501:8501"
     environment:
       - MODEL_PATH=/app/model_new
-    volumes:
-      - /home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new:/app/model_new
