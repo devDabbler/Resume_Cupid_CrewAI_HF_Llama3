@@ -224,37 +224,51 @@ elif authentication_status:
     
         return predicted_class
 
-    with st.form(key='resume_form'):
-        job_description = st.text_area("Paste the Job Description here. Make sure to include key aspects of the role required.", placeholder="Job description. This field should have at least 100 characters.")
-        resume_file = st.file_uploader("Upload your resume", type=['pdf', 'docx'])
-        role = st.text_input("Type the role for which the candidate is being evaluated:", placeholder="Enter the role here")
+with st.form(key='resume_form'):
+    job_description = st.text_area("Paste the Job Description here. Make sure to include key aspects of the role required.", placeholder="Job description. This field should have at least 100 characters.")
+    resume_file = st.file_uploader("Upload your resume", type=['pdf', 'docx'])
+    role = st.text_input("Type the role for which the candidate is being evaluated:", placeholder="Enter the role here")
 
-        st.write("Enter the key parameters to evaluate the resume:")
-        skill1 = st.text_input("Skill 1", placeholder="JavaScript")
-        skill2 = st.text_input("Skill 2", placeholder="Python")
-        skill3 = st.text_input("Skill 3", placeholder="React")
-        skill4 = st.text_input("Skill 4", placeholder="ETL")
-        skill5 = st.text_input("Skill 5", placeholder="Git")
-        min_experience = st.number_input("Minimum years of experience", min_value=0, value=5)
+    st.write("Enter the key parameters to evaluate the resume:")
+    skill1 = st.text_input("Skill 1", placeholder="JavaScript")
+    skill2 = st.text_input("Skill 2", placeholder="Python")
+    skill3 = st.text_input("Skill 3", placeholder="React")
+    skill4 = st.text_input("Skill 4", placeholder="ETL")
+    skill5 = st.text_input("Skill 5", placeholder="Git")
+    min_experience = st.number_input("Minimum years of experience", min_value=0, value=5)
 
-        st.write("Rank the skills in order of importance (1 being the most important):")
-        skill_rankings = []
-        for i in range(1, 6):
-            rank = st.number_input(f"Rank for Skill {i}", min_value=1, max_value=5, value=i, key=f"skill_rank_{i}")
-            skill_rankings.append(rank)
+    st.write("Rank the skills in order of importance (1 being the most important):")
+    skill_rankings = []
+    for i in range(1, 6):
+        rank = st.number_input(f"Rank for Skill {i}", min_value=1, max_value=5, value=i, key=f"skill_rank_{i}")
+        skill_rankings.append(rank)
 
-        submitted = st.form_submit_button('Submit')
+    submitted = st.form_submit_button('Submit')
 
-        if submitted:
-            if resume_file is not None:
-                # Read the resume file content
-                resume_text = resume_file.read()
-                # Call the classify_job_title function (modify as needed to process resume_text properly)
-                predicted_class = classify_job_title(job_description, resume_text)
-                st.write(f'The predicted class for the given job description and resume is: {predicted_class}')
-            else:
-                st.error("Please upload a resume file.")
+    if submitted:
+        if resume_file is not None:
+            resume_file.seek(0)
+            resume_bytes = resume_file.read()
+            resume_text = resume_bytes.decode('utf-8', errors='ignore')  # Decode bytes to string
 
+            # Call the classify_job_title function (modify as needed to process resume_text properly)
+            predicted_class = classify_job_title(job_description, resume_text)
+            st.write(f'The predicted class for the given job description and resume is: {predicted_class}')
+        else:
+            st.error("Please upload a resume file.")
+
+    if submitted:
+        if resume_file is not None:
+            resume_file.seek(0)
+            resume_bytes = resume_file.read()
+            resume_text = resume_bytes.decode('utf-8', errors='ignore')  # Decode bytes to string
+
+            # Call the classify_job_title function (modify as needed to process resume_text properly)
+            predicted_class = classify_job_title(job_description, resume_text)
+            st.write(f'The predicted class for the given job description and resume is: {predicted_class}')
+        else:
+            st.error("Please upload a resume file.")
+     
             resume_first_name = "Unknown"
 
             if submitted and resume_file is not None and len(job_description) > 100:
