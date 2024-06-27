@@ -25,16 +25,21 @@ except Exception as e:
     print(f"Error loading model: {e}")
 
 # Load ONNX model
-ort_session = ort.InferenceSession(os.path.join(model_path, "bert_model.onnx"))
+try:
+    ort_session = ort.InferenceSession(os.path.join(model_path, "bert_model.onnx"))
+    print("ONNX model loaded successfully.")
+except Exception as e:
+    print(f"Error loading ONNX model: {e}")
 
 def classify_job_title(job_description, resume_text):
     try:
+        # Tokenize input text
         inputs = tokenizer(job_description + " " + resume_text, return_tensors="np", padding=True, truncation=True)
+        print("Tokenization complete.")
+        print(f"Input IDs: {inputs['input_ids']}")
+        print(f"Attention Mask: {inputs['attention_mask']}")
 
-        # Debugging: Print the shapes of the inputs
-        print(f"Input IDs shape: {inputs['input_ids'].shape}")
-        print(f"Attention Mask shape: {inputs['attention_mask'].shape}")
-
+        # Prepare inputs for ONNX model
         ort_inputs = {
             'input_ids': inputs['input_ids'].astype(np.int64),
             'attention_mask': inputs['attention_mask'].astype(np.int64)
@@ -42,16 +47,24 @@ def classify_job_title(job_description, resume_text):
 
         # Debugging: Print input shapes for ONNX model
         for name, value in ort_inputs.items():
-            print(f"ONNX input name: {name}, shape: {value.shape}")
+            print(f"ONNX input name: {name}, shape: {value.shape}, dtype: {value.dtype}")
+            print(f"ONNX input values: {value}")
 
+        # Run ONNX model
         ort_outs = ort_session.run(None, ort_inputs)
+        print("ONNX model inference complete.")
+        print(f"ONNX model output: {ort_outs}")
 
-        # Debugging: Print the output shape from ONNX model
+        # Process outputs
         logits = ort_outs[0]
-        print(f"Logits shape: {logits.shape}")
+        print(f"Logits: {logits}")
 
         probabilities = softmax(logits, axis=1)
+        print(f"Probabilities: {probabilities}")
+
         predicted_class = np.argmax(probabilities, axis=1).item()
+        print(f"Predicted Class: {predicted_class}")
+        
         return predicted_class
     except Exception as e:
         print(f"Error during classification: {e}")
