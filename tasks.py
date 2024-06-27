@@ -10,7 +10,7 @@ print(f"Model path: {model_path}")
 print(f"Files in model path: {os.listdir(model_path)}")
 
 # Check if the required files exist
-required_files = ["vocab.txt", "tokenizer_config.json", "special_tokens_map.json", "bert_model.onnx"]
+required_files = ["vocab.txt", "tokenizer_config.json", "special_tokens_map.json"]
 for file_name in required_files:
     file_path = os.path.join(model_path, file_name)
     if not os.path.isfile(file_path):
@@ -23,7 +23,7 @@ try:
     model = BertForSequenceClassification.from_pretrained(model_path, config=config)
     print("Model and tokenizer loaded successfully.")
 except Exception as e:
-    print(f"Error loading model or tokenizer: {e}")
+    print(f"Error loading model: {e}")
 
 # Load ONNX model
 try:
