@@ -10,7 +10,10 @@ services:
       - /home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new:/app/model_new
     ports:
       - "8501:8501"
+    env_file:
+      - .env
     environment:
       - MODEL_PATH=/app/model_new
       - CLEARML_API_ACCESS_KEY=${CLEARML_API_ACCESS_KEY}
       - CLEARML_API_SECRET_KEY=${CLEARML_API_SECRET_KEY}
+      - CLEARML_API_HOST=${CLEARML_API_HOST}
