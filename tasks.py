@@ -35,8 +35,11 @@ def classify_job_title(job_description, resume_text):
         'attention_mask': inputs['attention_mask'].astype(np.int64)
     }
     
-    # Print input shapes for debugging
+    # Print input shapes and values for debugging
     print("Input shape to ONNX model:", ort_inputs['input_ids'].shape)
+    print("Attention mask shape to ONNX model:", ort_inputs['attention_mask'].shape)
+    print("Input IDs:", ort_inputs['input_ids'])
+    print("Attention mask:", ort_inputs['attention_mask'])
     
     ort_outs = ort_session.run(None, ort_inputs)
     logits = ort_outs[0]
