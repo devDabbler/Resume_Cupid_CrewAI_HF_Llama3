@@ -60,3 +60,12 @@ def classify_job_title(job_description, resume_text):
 def softmax(x, axis=None):
     e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
     return e_x / np.sum(e_x, axis=axis, keepdims=True)
+
+# Test with simplified inputs
+if __name__ == "__main__":
+    test_job_description = "Data Scientist with experience in Python and Machine Learning."
+    test_resume_text = "Experienced in Python, Machine Learning, and Data Science."
+    
+    print("Classifying job title with test inputs...")
+    classification_result = classify_job_title(test_job_description, test_resume_text)
+    print(f"Classification Result: {classification_result}")
