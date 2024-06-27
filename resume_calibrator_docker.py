@@ -106,37 +106,37 @@ elif authentication_status:
         else:
             return 100.0  # High fitment
 
-def display_results(fitment_score, matched_skills, unmatched_skills, relevant_experience):
-    st.subheader("Fitment Score:")
-    st.write(f"{fitment_score:.2f}%")
+    def display_results(fitment_score, matched_skills, unmatched_skills, relevant_experience):
+        st.subheader("Fitment Score:")
+        st.write(f"{fitment_score:.2f}%")
 
-    if fitment_score < 60:
-        st.warning("The candidate's experience fitment is relatively low. Please review the detailed evaluation report for areas where the candidate's experience may not align with the job requirements.")
-    elif fitment_score < 80:
-        st.info("The candidate's experience fitment is moderate. Please review the detailed evaluation report to identify areas where the candidate's experience can be strengthened to better align with the job requirements.")
-    else:
-        st.success("The candidate's experience fitment is strong. Please review the detailed evaluation report to understand the candidate's relevant experience and skills.")
+        if fitment_score < 60:
+            st.warning("The candidate's experience fitment is relatively low. Please review the detailed evaluation report for areas where the candidate's experience may not align with the job requirements.")
+        elif fitment_score < 80:
+            st.info("The candidate's experience fitment is moderate. Please review the detailed evaluation report to identify areas where the candidate's experience can be strengthened to better align with the job requirements.")
+        else:
+            st.success("The candidate's experience fitment is strong. Please review the detailed evaluation report to understand the candidate's relevant experience and skills.")
 
-    st.subheader("Matched Skills:")
-    if matched_skills:
-        for skill, score in matched_skills.items():
-            st.write(f"- {skill}: {score:.2f}")
-    else:
-        st.write("No matched skills found.")
+        st.subheader("Matched Skills:")
+        if matched_skills:
+            for skill, score in matched_skills.items():
+                st.write(f"- {skill}: {score:.2f}")
+        else:
+            st.write("No matched skills found.")
 
-    st.subheader("Unmatched Skills:")
-    if unmatched_skills:
-        for skill in unmatched_skills:
-            st.write(f"- {skill}")
-    else:
-        st.write("All required skills are matched.")
+        st.subheader("Unmatched Skills:")
+        if unmatched_skills:
+            for skill in unmatched_skills:
+                st.write(f"- {skill}")
+        else:
+            st.write("All required skills are matched.")
 
-    st.subheader("Relevant Experience:")
-    if relevant_experience:
-        for experience, score in relevant_experience.items():
-            st.write(f"- {experience}: {score:.2f}")
-    else:
-        st.write("No relevant experience found.")
+        st.subheader("Relevant Experience:")
+        if relevant_experience:
+            for experience, score in relevant_experience.items():
+                st.write(f"- {experience}: {score:.2f}")
+        else:
+            st.write("No relevant experience found.")
 
     def analyze_skills(skills_section, job_description):
         required_skills = [skill.strip().lower() for skill in job_description.split(',')]
