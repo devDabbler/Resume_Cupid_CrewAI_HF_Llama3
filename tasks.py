@@ -25,32 +25,30 @@ except Exception as e:
     print(f"Error loading model: {e}")
 
 # Load ONNX model
-onnx_model_path = os.path.join(model_path, "bert_model.onnx")
-ort_session = ort.InferenceSession(onnx_model_path)
-
-# Print ONNX model input requirements
-input_name = ort_session.get_inputs()[0].name
-input_shape = ort_session.get_inputs()[0].shape
-input_type = ort_session.get_inputs()[0].type
-print(f"ONNX Model Input Name: {input_name}")
-print(f"ONNX Model Input Shape: {input_shape}")
-print(f"ONNX Model Input Type: {input_type}")
+ort_session = ort.InferenceSession(os.path.join(model_path, "bert_model.onnx"))
 
 def classify_job_title(job_description, resume_text):
     inputs = tokenizer(job_description + " " + resume_text, return_tensors="np", padding=True, truncation=True)
+    
+    # Debugging: Print the shapes of the inputs
+    print(f"Input IDs shape: {inputs['input_ids'].shape}")
+    print(f"Attention Mask shape: {inputs['attention_mask'].shape}")
+    
     ort_inputs = {
         'input_ids': inputs['input_ids'].astype(np.int64),
         'attention_mask': inputs['attention_mask'].astype(np.int64)
     }
     
-    # Print input shapes and values for debugging
-    print("Input shape to ONNX model:", ort_inputs['input_ids'].shape)
-    print("Attention mask shape to ONNX model:", ort_inputs['attention_mask'].shape)
-    print("Input IDs:", ort_inputs['input_ids'])
-    print("Attention mask:", ort_inputs['attention_mask'])
+    # Debugging: Print input shapes for ONNX model
+    for name, value in ort_inputs.items():
+        print(f"ONNX input name: {name}, shape: {value.shape}")
     
     ort_outs = ort_session.run(None, ort_inputs)
+    
+    # Debugging: Print the output shape from ONNX model
     logits = ort_outs[0]
+    print(f"Logits shape: {logits.shape}")
+    
     probabilities = softmax(logits, axis=1)
     predicted_class = np.argmax(probabilities, axis=1).item()
     return predicted_class
