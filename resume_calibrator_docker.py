@@ -1,10 +1,4 @@
 import os
-print("Contents of /app directory:")
-print(os.listdir("/app"))
-print("\nContents of tasks.py:")
-with open("/app/tasks.py", "r") as f:
-    print(f.read())
-
 import tempfile
 import streamlit as st
 import re
@@ -28,28 +22,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import platform
 import transformers
-from clearml import Task
 import onnxruntime as ort
-
-# Define log_run function here
-def log_run(input_data, output_data):
-    log_entry = {
-        "input": input_data,
-        "output": output_data,
-        "timestamp": datetime.now().isoformat()
-    }
-    log_file = "/app/run_logs.json"
-    try:
-        if os.path.exists(log_file):
-            with open(log_file, "r") as file:
-                logs = json.load(file)
-        else:
-            logs = []
-        logs.append(log_entry)
-        with open(log_file, "w") as file:
-            json.dump(logs, file, indent=4)
-    except Exception as e:
-        print(f"Error logging run: {e}")
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, filename='resume_calibrator.log')
@@ -58,9 +31,6 @@ logging.basicConfig(level=logging.INFO, filename='resume_calibrator.log')
 logging.info(f"Python Version: {platform.python_version()}")
 logging.info(f"PyTorch Version: {torch.__version__}")
 logging.info(f"Transformers Version: {transformers.__version__}")
-
-# Initialize ClearML task
-task = Task.init(project_name='resume_cupid', task_name='model_deployment')
 
 # Streamlit UI setup
 st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
@@ -310,8 +280,7 @@ elif authentication_status:
                 "weights": weights
             }
             output_data = {"result": fitment_score}
-            log_run(input_data, output_data)
-
+            
             print("Result:", fitment_score)
             display_results(fitment_score, matched_skills, unmatched_skills, relevant_experience)
 

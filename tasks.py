@@ -25,7 +25,7 @@ except Exception as e:
     print(f"Error loading model: {e}")
 
 # Load ONNX model
-ort_session = ort.InferenceSession("/app/model_new/bert_model.onnx")
+ort_session = ort.InferenceSession(os.path.join(model_path, "bert_model.onnx"))
 
 def classify_job_title(job_description, resume_text):
     inputs = tokenizer(job_description + " " + resume_text, return_tensors="np", padding=True, truncation=True)
@@ -39,7 +39,3 @@ def classify_job_title(job_description, resume_text):
 def softmax(x, axis=None):
     e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
     return e_x / np.sum(e_x, axis=axis, keepdims=True)
-
-def log_run(input_data, output_data):
-    # Assuming this function logs data to a logging service or file
-    pass
