@@ -1,25 +1,18 @@
-# Use the official Python image from the Docker Hub
 FROM python:3.10
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy the requirements file into the container
+# Install dependencies
 COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-# Copy the entire current directory to the container
+# Copy the rest of the application code
 COPY . .
 
-# Copy the config.toml file to the container
-COPY config.toml .
-COPY /home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new /app/model_new
-COPY tasks.py /app/tasks.py
+# Copy the .env file
+COPY .env .env
 
-# Install any dependencies specified in requirements.txt
-RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
+# Ensure environment variables are set
+RUN echo "source /app/.env" >> /root/.bashrc
 
-# Install nltk and download the stopwords data
-RUN pip install --no-cache-dir --default-timeout=1000 nltk && python -m nltk.downloader stopwords
-
-# Run the application
-CMD ["streamlit", "run", "resume_calibrator_docker.py", "--server.address", "0.0.0.0", "--server.port", "8501"]
+CMD ["streamlit", "run", "resume_calibrator_docker.py"]

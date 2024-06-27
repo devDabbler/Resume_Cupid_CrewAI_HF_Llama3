@@ -12,3 +12,5 @@ services:
       - "8501:8501"
     environment:
       - MODEL_PATH=/app/model_new
+      - CLEARML_API_ACCESS_KEY=${CLEARML_API_ACCESS_KEY}
+      - CLEARML_API_SECRET_KEY=${CLEARML_API_SECRET_KEY}
