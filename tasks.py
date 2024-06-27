@@ -28,30 +28,34 @@ except Exception as e:
 ort_session = ort.InferenceSession(os.path.join(model_path, "bert_model.onnx"))
 
 def classify_job_title(job_description, resume_text):
-    inputs = tokenizer(job_description + " " + resume_text, return_tensors="np", padding=True, truncation=True)
-    
-    # Debugging: Print the shapes of the inputs
-    print(f"Input IDs shape: {inputs['input_ids'].shape}")
-    print(f"Attention Mask shape: {inputs['attention_mask'].shape}")
-    
-    ort_inputs = {
-        'input_ids': inputs['input_ids'].astype(np.int64),
-        'attention_mask': inputs['attention_mask'].astype(np.int64)
-    }
-    
-    # Debugging: Print input shapes for ONNX model
-    for name, value in ort_inputs.items():
-        print(f"ONNX input name: {name}, shape: {value.shape}")
-    
-    ort_outs = ort_session.run(None, ort_inputs)
-    
-    # Debugging: Print the output shape from ONNX model
-    logits = ort_outs[0]
-    print(f"Logits shape: {logits.shape}")
-    
-    probabilities = softmax(logits, axis=1)
-    predicted_class = np.argmax(probabilities, axis=1).item()
-    return predicted_class
+    try:
+        inputs = tokenizer(job_description + " " + resume_text, return_tensors="np", padding=True, truncation=True)
+
+        # Debugging: Print the shapes of the inputs
+        print(f"Input IDs shape: {inputs['input_ids'].shape}")
+        print(f"Attention Mask shape: {inputs['attention_mask'].shape}")
+
+        ort_inputs = {
+            'input_ids': inputs['input_ids'].astype(np.int64),
+            'attention_mask': inputs['attention_mask'].astype(np.int64)
+        }
+
+        # Debugging: Print input shapes for ONNX model
+        for name, value in ort_inputs.items():
+            print(f"ONNX input name: {name}, shape: {value.shape}")
+
+        ort_outs = ort_session.run(None, ort_inputs)
+
+        # Debugging: Print the output shape from ONNX model
+        logits = ort_outs[0]
+        print(f"Logits shape: {logits.shape}")
+
+        probabilities = softmax(logits, axis=1)
+        predicted_class = np.argmax(probabilities, axis=1).item()
+        return predicted_class
+    except Exception as e:
+        print(f"Error during classification: {e}")
+        raise
 
 def softmax(x, axis=None):
     e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
