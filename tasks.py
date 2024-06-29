@@ -2,6 +2,10 @@ import os
 import onnxruntime as ort
 import numpy as np
 from transformers import BertTokenizer, BertConfig, BertForSequenceClassification
+from crewai import Task
+import logging
+import json
+from datetime import datetime
 
 model_path = os.getenv('MODEL_PATH', '/app/model_new')
 
@@ -59,3 +63,76 @@ def classify_job_title(job_description, resume_text):
 def softmax(x, axis=None):
     e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
     return e_x / np.sum(e_x, axis=axis, keepdims=True)
+
+# CrewAI task creation functions
+
+def create_calibration_task(job_description, resume, resume_calibrator, role, parameters):
+    """
+    Creates a calibration task for evaluating the resume against the job description.
+    """
+    try:
+        calibration_task = Task(
+            name="Calibrate Resume",
+            description=f"Job Requirements:\n{job_description}\n\nResume:\n{resume}\n\nEvaluate the fitment of the provided resume against the job requirements for the role of {role}. Use the given parameters and scoring guidelines:\n\nParameters:\n{parameters}\n\nScoring Guidelines:\n- Evaluate the candidate's skills and experience against the job requirements.\n- Assign scores based on depth of experience and skill relevance.\n- Provide only a fitment score as a percentage value between 0 and 100.",
+            agent=resume_calibrator,
+            expected_output="Fitment score as a percentage value between 0 and 100."
+        )
+        logging.info(f"Created calibration task for role: {role}")
+        return calibration_task
+    except Exception as e:
+        logging.error(f"Failed to create calibration task: {str(e)}")
+        raise
+
+def create_skill_evaluation_task(job_description, resume_skills, skills_agent, role, required_skills, weights):
+    """
+    Creates a skill evaluation task for assessing candidate skills against job requirements.
+    """
+    try:
+        skill_evaluation_task = Task(
+            name="Evaluate Skills",
+            description=f"Evaluate the candidate's skills against the required skills for the role of {role}. Use the following scoring guidelines:\n\nJob Requirements:\n{job_description}\n\nResume Skills:\n{resume_skills}\n\nRequired Skills:\n{', '.join(required_skills)}\n\nSkill Importance Weights:\n{weights}\n\nScoring Guidelines:\n- expert: 10 points\n- advanced: 8 points\n- intermediate: 5 points\n- beginner: 2 points\n- no experience: 0 points\n\nProvide only a skills fitment score as a percentage value between 0 and 100.",
+            agent=skills_agent,
+            expected_output="Skills fitment score as a percentage value between 0 and 100."
+        )
+        logging.info(f"Created skills evaluation task for role: {role}")
+        return skill_evaluation_task
+    except Exception as e:
+        logging.error(f"Failed to create skills evaluation task: {str(e)}")
+        raise
+
+def create_experience_evaluation_task(job_description, resume_experience, experience_agent, role):
+    """
+    Creates an experience evaluation task for assessing work history relevance to the job requirements.
+    """
+    try:
+        experience_evaluation_task = Task(
+            name="Evaluate Experience",
+            description=f"Evaluate the candidate's work experience and history based on the following job requirements for the role of {role}. Use the provided scoring guidelines:\n\nJob Requirements:\n{job_description}\n\nResume Experience:\n{resume_experience}\n\nScoring Guidelines:\n- Assess the relevance and depth of work experience.\n- Provide only an experience fitment score as a percentage value between 0 and 100.",
+            agent=experience_agent,
+            expected_output="Experience fitment score as a percentage value between 0 and 100."
+        )
+        logging.info(f"Created experience evaluation task for role: {role}")
+        return experience_evaluation_task
+    except Exception as e:
+        logging.error(f"Failed to create experience evaluation task: {str(e)}")
+        raise
+
+def log_run(input_data, output_data):
+    """
+    Logs the input and output data of a run.
+    """
+    try:
+        log_entry = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "input_data": input_data,
+            "output_data": output_data
+        }
+        with open("run_log.json", "a") as log_file:
+            json.dump(log_entry, log_file)
+            log_file.write("\n")
+        logging.info("Run logged successfully.")
+    except Exception as e:
+        logging.error(f"Failed to log run: {str(e)}")
+
+# Add this line at the end of the file to log when the module is imported
+logging.info("tasks.py module loaded")
