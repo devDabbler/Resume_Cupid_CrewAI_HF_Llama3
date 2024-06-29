@@ -7,6 +7,9 @@ import logging
 import json
 from datetime import datetime
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 model_path = os.getenv('MODEL_PATH', '/app/model_new')
 
 # Ensure the model path and files exist
@@ -73,9 +76,29 @@ def create_calibration_task(job_description, resume, resume_calibrator, role, pa
     try:
         calibration_task = Task(
             name="Calibrate Resume",
-            description=f"Job Requirements:\n{job_description}\n\nResume:\n{resume}\n\nEvaluate the fitment of the provided resume against the job requirements for the role of {role}. Use the given parameters and scoring guidelines:\n\nParameters:\n{parameters}\n\nScoring Guidelines:\n- Evaluate the candidate's skills and experience against the job requirements.\n- Assign scores based on depth of experience and skill relevance.\n- Provide only a fitment score as a percentage value between 0 and 100.",
+            description=f"""
+            Evaluate the fitment of the provided resume against the job requirements for the role of {role}.
+            Provide a detailed evaluation report with the following structure:
+
+            Evaluation Report
+            Experience Fitment Score: [Score]%
+
+            [Overall assessment of the candidate's experience]
+
+            • Relevant Experience: [List relevant experience or state 'None' if not applicable]
+            • Irrelevant Experience: [List irrelevant experience and explain why]
+            • Gaps: [Identify gaps in the candidate's experience]
+            • Areas of Improvement: [Suggest areas where the candidate should focus on improving]
+
+            [Concluding statement about the candidate's fitment for the role]
+
+            Use the given parameters and job description to inform your evaluation.
+            Parameters: {parameters}
+            Job Description: {job_description}
+            Resume: {resume}
+            """,
             agent=resume_calibrator,
-            expected_output="Fitment score as a percentage value between 0 and 100."
+            expected_output="A detailed calibration report with scores and justifications."
         )
         logging.info(f"Created calibration task for role: {role}")
         return calibration_task
@@ -90,9 +113,38 @@ def create_skill_evaluation_task(job_description, resume_skills, skills_agent, r
     try:
         skill_evaluation_task = Task(
             name="Evaluate Skills",
-            description=f"Evaluate the candidate's skills against the required skills for the role of {role}. Use the following scoring guidelines:\n\nJob Requirements:\n{job_description}\n\nResume Skills:\n{resume_skills}\n\nRequired Skills:\n{', '.join(required_skills)}\n\nSkill Importance Weights:\n{weights}\n\nScoring Guidelines:\n- expert: 10 points\n- advanced: 8 points\n- intermediate: 5 points\n- beginner: 2 points\n- no experience: 0 points\n\nProvide only a skills fitment score as a percentage value between 0 and 100.",
+            description=f"""
+            Evaluate the candidate's skills against the required skills for the role of {role}.
+            Provide a detailed evaluation report with the following structure:
+
+            Skill Evaluation Report
+            Skills Fitment Score: [Score]%
+
+            [Overall assessment of the candidate's skills]
+
+            Skill-by-Skill Analysis:
+            {', '.join([f"• {skill}: [Score]% - [Brief justification]" for skill in required_skills])}
+
+            Strengths: [List the candidate's strongest skills]
+            Areas for Improvement: [List skills the candidate needs to develop]
+
+            [Concluding statement about the candidate's skill fitment for the role]
+
+            Use the following information to inform your evaluation:
+            Job Requirements: {job_description}
+            Resume Skills: {resume_skills}
+            Required Skills: {', '.join(required_skills)}
+            Skill Importance Weights: {weights}
+
+            Scoring Guidelines:
+            - expert: 10 points
+            - advanced: 8 points
+            - intermediate: 5 points
+            - beginner: 2 points
+            - no experience: 0 points
+            """,
             agent=skills_agent,
-            expected_output="Skills fitment score as a percentage value between 0 and 100."
+            expected_output="A detailed skills evaluation report with scores and justifications for each skill."
         )
         logging.info(f"Created skills evaluation task for role: {role}")
         return skill_evaluation_task
@@ -107,9 +159,33 @@ def create_experience_evaluation_task(job_description, resume_experience, experi
     try:
         experience_evaluation_task = Task(
             name="Evaluate Experience",
-            description=f"Evaluate the candidate's work experience and history based on the following job requirements for the role of {role}. Use the provided scoring guidelines:\n\nJob Requirements:\n{job_description}\n\nResume Experience:\n{resume_experience}\n\nScoring Guidelines:\n- Assess the relevance and depth of work experience.\n- Provide only an experience fitment score as a percentage value between 0 and 100.",
+            description=f"""
+            Evaluate the candidate's work experience and history based on the job requirements for the role of {role}.
+            Provide a detailed evaluation report with the following structure:
+
+            Experience Evaluation Report
+            Experience Fitment Score: [Score]%
+
+            [Overall assessment of the candidate's experience]
+
+            • Relevant Experience: [List relevant experience or state 'None' if not applicable]
+            • Irrelevant Experience: [List irrelevant experience and explain why]
+            • Gaps: [Identify gaps in the candidate's experience]
+            • Areas of Improvement: [Suggest areas where the candidate should focus on improving]
+
+            [Concluding statement about the candidate's experience fitment for the role]
+
+            Use the following information to inform your evaluation:
+            Job Requirements: {job_description}
+            Resume Experience: {resume_experience}
+
+            Scoring Guidelines:
+            - Assess the relevance and depth of work experience.
+            - Consider the alignment of past roles with the current job requirements.
+            - Evaluate the progression and growth in the candidate's career.
+            """,
             agent=experience_agent,
-            expected_output="Experience fitment score as a percentage value between 0 and 100."
+            expected_output="A detailed experience evaluation report with scores, relevant experiences, and improvement areas."
         )
         logging.info(f"Created experience evaluation task for role: {role}")
         return experience_evaluation_task
