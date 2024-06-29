@@ -11,7 +11,7 @@ from datetime import datetime
 import json
 import torch
 import yaml
-from tasks import classify_job_title, create_calibration_task, create_skill_evaluation_task, create_experience_evaluation_task
+from tasks import classify_job_title, create_calibration_task, create_skill_evaluation_task, create_experience_evaluation_task, log_run
 from utils import extract_experience_section, extract_skills_section
 import streamlit_authenticator as stauth
 from langchain_groq import ChatGroq
@@ -248,59 +248,67 @@ elif authentication_status:
 
         submitted = st.form_submit_button('Submit')
 
-    if submitted and resume_file is not None and len(job_description) > 100:
-        try:
-            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                tmp_file.write(resume_file.read())
-                resume_file_path = tmp_file.name
-            
-            resume = read_all_pdf_pages(resume_file_path)
-            os.unlink(resume_file_path)
-            
-            resume_first_name = extract_first_name(resume)
+if submitted and resume_file is not None and len(job_description) > 100:
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+            tmp_file.write(resume_file.read())
+            resume_file_path = tmp_file.name
+        
+        resume = read_all_pdf_pages(resume_file_path)
+        os.unlink(resume_file_path)
+        
+        resume_first_name = extract_first_name(resume)
 
-            resume_skills, resume_experience = extract_resume_sections(resume)
+        resume_skills, resume_experience = extract_resume_sections(resume)
 
-            matched_skills, unmatched_skills = analyze_skills(resume_skills, job_description)
-            relevant_experience = analyze_experience(resume_experience, job_description)
+        resume_calibrator = create_resume_calibrator_agent(llm)
+        skills_agent = create_skills_agent(llm)
+        experience_agent = create_experience_agent(llm)
 
-            resume_calibrator = create_resume_calibrator_agent(llm)
-            skills_agent = create_skills_agent(llm)
-            experience_agent = create_experience_agent(llm)
+        parameters = [skill1, skill2, skill3, skill4, skill5, f"{min_experience} or more years of experience"]
+        weights = calculate_weights(skill_rankings)
+        
+        calibration_task = create_calibration_task(job_description, resume, resume_calibrator, role, parameters)
+        skill_evaluation_task = create_skill_evaluation_task(job_description, resume_skills, skills_agent, role, parameters, weights)
+        experience_evaluation_task = create_experience_evaluation_task(job_description, resume_experience, experience_agent, role)
 
-            parameters = [skill1, skill2, skill3, skill4, skill5, f"{min_experience} or more years of experience"]
-            weights = calculate_weights(skill_rankings)
-            
-            calibration_task = create_calibration_task(job_description, resume, resume_calibrator, role, parameters)
-            skill_evaluation_task = create_skill_evaluation_task(job_description, resume_skills, skills_agent, role, parameters, weights)
-            experience_evaluation_task = create_experience_evaluation_task(job_description, resume_experience, experience_agent, role)
+        crew = Crew(
+            agents=[resume_calibrator, skills_agent, experience_agent],
+            tasks=[calibration_task, skill_evaluation_task, experience_evaluation_task],
+            verbose=True
+        )
+        
+        result = crew.kickoff()
+        
+        # Process the results
+        processed_result = str(result)
+        
+        # Display results
+        display_results(processed_result, job_description)
 
-            crew = Crew(
-                agents=[resume_calibrator, skills_agent, experience_agent],
-                tasks=[calibration_task, skill_evaluation_task, experience_evaluation_task],
-                verbose=True
-            )
-            
-            result = crew.kickoff()
-            
-            # Process the results
-            processed_result = str(result)
-            
-            # Display results
-            display_results(processed_result, job_description)
+        # Log the run
+        input_data = {
+            "job_description": job_description,
+            "resume": resume,
+            "role": role,
+            "parameters": parameters,
+            "weights": weights
+        }
+        output_data = {"result": processed_result}
+        log_run(input_data, output_data)
 
-        except Exception as e:
-            st.error(f"Failed to process the request: {str(e)}")
-            logging.error(f"Failed to process the request: {str(e)}")
-            logging.exception(e)
-    else:
-        st.write("Awaiting input and file upload...")
+    except Exception as e:
+        st.error(f"Failed to process the request: {str(e)}")
+        logging.error(f"Failed to process the request: {str(e)}")
+        logging.exception(e)
+else:
+    st.write("Awaiting input and file upload...")
 
     # Adding a separate feedback form outside the main resume form
     st.subheader("Feedback")
     with st.form(key='feedback_form'):
         name = st.text_input("Name of Person Leaving Feedback")
-        resume_first_name = st.text_input("Candidate or Resume Name", value=resume_first_name)
+        resume_first_name = st.text_input("Candidate or Resume Name", value=resume_first_name) # type: ignore
         role_input = st.text_input("Role", value=role, disabled=True)
         client = st.text_input("Client")
         accuracy_rating = st.select_slider("Accuracy of the evaluation:", options=[1, 2, 3, 4, 5])
