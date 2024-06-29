@@ -13,6 +13,7 @@ from tasks import create_calibration_task, create_skill_evaluation_task, create_
 from utils import read_all_pdf_pages, extract_skills_section, extract_experience_section, skills_keywords
 from datetime import datetime
 import json
+import onnxruntime as ort
 import numpy as np
 from crewai import Crew, Task, Process
 from langchain_groq import ChatGroq
@@ -38,15 +39,24 @@ logging.info(f"Transformers Version: {transformers.__version__}")
 # Load the BERT model and tokenizer from local path
 @st.cache_resource
 def load_model_and_tokenizer():
-    model_path = "/app/model"  # Adjust path as needed for your Docker environment
+    model_path = "/app/model_new"  # Adjust this path if needed
+    print(f"Model path: {model_path}")
+    print(f"Files in model path: {os.listdir(model_path)}")
+
+    # Check if the required files exist
+    required_files = ["vocab.txt", "tokenizer_config.json", "special_tokens_map.json", "bert_model.onnx"]
+    for file_name in required_files:
+        file_path = os.path.join(model_path, file_name)
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"{file_name} not found in {model_path}")
+
     tokenizer = BertTokenizer.from_pretrained(model_path)
-    config = BertConfig.from_pretrained(model_path, num_labels=3)  # Assuming the model has 3 labels
-    model = BertForSequenceClassification.from_pretrained(model_path, config=config)
-    return model, tokenizer
+    ort_session = ort.InferenceSession(os.path.join(model_path, "bert_model.onnx"))
+    return ort_session, tokenizer
 
 try:
-    model, tokenizer = load_model_and_tokenizer()
-except EnvironmentError as e:
+    ort_session, tokenizer = load_model_and_tokenizer()
+except Exception as e:
     st.error(f"Error loading model: {e}")
     st.stop()
 
@@ -207,18 +217,43 @@ def predict_fitment(job_description, resume_text):
     logging.info(f"Job Description: {job_description}")
     logging.info(f"Resume Text: {resume_text}")
     
-    inputs = tokenizer(job_description + " " + resume_text, return_tensors="pt", padding=True, truncation=True)
-    outputs = model(**inputs)
-    logits = outputs.logits.detach().numpy()
-    probabilities = np.exp(logits) / np.sum(np.exp(logits), axis=-1, keepdims=True)
-    predicted_class = np.argmax(logits, axis=1).item()
+    inputs = tokenizer(job_description + " " + resume_text, return_tensors="np", padding=True, truncation=True)
     
-    logging.info(f"Inputs: {inputs}")
+    # Dynamically determine the sequence length
+    max_seq_len = ort_session.get_inputs()[0].shape[1]
+    
+    input_ids = np.zeros((1, max_seq_len), dtype=np.int64)
+    attention_mask = np.zeros((1, max_seq_len), dtype=np.int64)
+    token_type_ids = np.zeros((1, max_seq_len), dtype=np.int64)
+
+    input_len = min(inputs['input_ids'].shape[1], max_seq_len)
+
+    input_ids[0, :input_len] = inputs['input_ids'][0, :input_len]
+    attention_mask[0, :input_len] = inputs['attention_mask'][0, :input_len]
+    if 'token_type_ids' in inputs:
+        token_type_ids[0, :input_len] = inputs['token_type_ids'][0, :input_len]
+
+    ort_inputs = {
+        'input_ids': input_ids,
+        'attention_mask': attention_mask,
+        'token_type_ids': token_type_ids
+    }
+    
+    ort_outs = ort_session.run(None, ort_inputs)
+    logits = ort_outs[0]
+    probabilities = softmax(logits, axis=1)
+    predicted_class = np.argmax(probabilities, axis=1).item()
+    
+    logging.info(f"Inputs: {ort_inputs}")
     logging.info(f"Logits: {logits}")
     logging.info(f"Probabilities: {probabilities}")
     logging.info(f"Predicted Class: {predicted_class}")
     
     return predicted_class
+
+def softmax(x, axis=None):
+    e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
+    return e_x / np.sum(e_x, axis=axis, keepdims=True)
 
 resume_first_name = "Unknown"
 
