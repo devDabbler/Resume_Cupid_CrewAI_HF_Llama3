@@ -279,21 +279,27 @@ def main_app():
 
 def log_run(input_data, output_data):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    log_entry = f"""
-    ===== Run Log: {timestamp} =====
-    Input:
-    Job Description: {input_data['job_description']}
-    Resume: {input_data['resume']}
-    Role: {input_data['role']}
-    Parameters: {input_data['parameters']}
-    Weights: {input_data['weights']}
-
-    Output:
-    Crew Result: {output_data['crew_result']}
-
-    =============================
-    """
-    logging.info(log_entry)
+    log_entry = {
+        "timestamp": timestamp,
+        "input_data": input_data,
+        "output_data": output_data
+    }
+    
+    log_file = 'run_logs.json'
+    if os.path.exists(log_file):
+        try:
+            with open(log_file, "r") as file:
+                logs = json.load(file)
+        except json.JSONDecodeError:
+            logs = []
+    else:
+        logs = []
+    
+    logs.append(log_entry)
+    
+    with open(log_file, "w") as file:
+        json.dump(logs, file, indent=4)
+    logging.info(f"Logged run at {timestamp}")
 
 if __name__ == "__main__":
     if "logged_in" not in st.session_state:
