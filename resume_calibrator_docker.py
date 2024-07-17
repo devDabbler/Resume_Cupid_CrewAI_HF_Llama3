@@ -93,13 +93,17 @@ def parse_docx(file):
     doc = Document(file)
     return "\n".join([para.text for para in doc.paragraphs])
 
+# Fetch login credentials from environment variables
+LOGIN_USERNAME = os.getenv('LOGIN_USERNAME')
+LOGIN_PASSWORD = os.getenv('LOGIN_PASSWORD')
+
 # Login form
 def login():
     st.title("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     if st.button("Login"):
-        if username == "tester" and password == "Fractal123":
+        if username == LOGIN_USERNAME and password == LOGIN_PASSWORD:
             st.session_state["logged_in"] = True
         else:
             st.error("Invalid username or password")
