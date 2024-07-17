@@ -63,8 +63,11 @@ feedback_data = load_feedback_data()
 
 # Save feedback data to file
 def save_feedback_data(feedback_data):
-    with open(FEEDBACK_FILE, "w") as file:
-        json.dump(feedback_data, file)
+    try:
+        with open(FEEDBACK_FILE, "w") as file:
+            json.dump(feedback_data, file, indent=4)
+    except IOError:
+        logging.error("Error saving feedback data to file.")
 
 # Function to extract first name from resume text
 def extract_first_name(resume_text):
@@ -161,6 +164,8 @@ def display_crew_results(crew_result):
 def main_app():
     st.title("Resume Cupid")
     st.markdown("Use this app to help you decide if a candidate is a good fit for a specific role.")
+
+    resume_first_name = ""  # Initialize resume_first_name variable
 
     with st.form(key='resume_form'):
         job_description = st.text_area("Paste the Job Description here. Make sure to include key aspects of the role required.", placeholder="Job description. This field should have at least 100 characters.")
