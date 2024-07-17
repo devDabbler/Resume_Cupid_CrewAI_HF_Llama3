@@ -1,6 +1,7 @@
 import os
 import tempfile
 import traceback
+import time  # Add this import for the progress bar
 import streamlit as st
 from dotenv import load_dotenv, find_dotenv
 import re
@@ -207,7 +208,13 @@ def main_app():
                 tasks=[calibration_task, skill_evaluation_task, experience_evaluation_task],
                 verbose=True
             )
-        
+            
+            # Progress bar
+            progress_bar = st.progress(0)
+            for i in range(100):
+                time.sleep(0.05)  # Simulate some work
+                progress_bar.progress(i + 1)
+            
             try:
                 crew_result = crew.kickoff()
                 logging.info(f"Raw result from crew.kickoff(): {crew_result}")
@@ -229,6 +236,7 @@ def main_app():
                     "crew_result": processed_result
                 }
                 log_run(input_data, output_data)
+                st.success("Evaluation Complete!")
             except Exception as e:
                 logging.error(f"Error in crew.kickoff(): {e}")
                 logging.error(f"Traceback: {traceback.format_exc()}")
