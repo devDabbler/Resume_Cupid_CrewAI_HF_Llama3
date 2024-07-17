@@ -21,6 +21,7 @@ import spacy
 from spacy.matcher import PhraseMatcher
 from langchain_core.messages import HumanMessage
 from fuzzywuzzy import fuzz
+import uuid  # Import UUID library
 
 # Streamlit UI setup
 st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
@@ -166,6 +167,7 @@ def main_app():
     st.title("Resume Cupid")
     st.markdown("Use this app to help you decide if a candidate is a good fit for a specific role.")
 
+    run_id = str(uuid.uuid4())  # Generate a unique ID for each run
     resume_first_name = ""  # Initialize resume_first_name variable
 
     with st.form(key='resume_form'):
@@ -209,11 +211,18 @@ def main_app():
                 verbose=True
             )
             
-            # Progress bar
+            # Enhanced progress bar
+            status_text = st.empty()
             progress_bar = st.progress(0)
             for i in range(100):
                 time.sleep(0.05)  # Simulate some work
                 progress_bar.progress(i + 1)
+                if i < 33:
+                    status_text.text("Starting the calibration...")
+                elif i < 66:
+                    status_text.text("Processing the evaluation...")
+                else:
+                    status_text.text("Finalizing the results...")
             
             try:
                 crew_result = crew.kickoff()
@@ -226,6 +235,7 @@ def main_app():
                 display_crew_results(processed_result)
 
                 input_data = {
+                    "run_id": run_id,
                     "job_description": job_description,
                     "resume": resume_text,
                     "role": role,
@@ -233,6 +243,7 @@ def main_app():
                     "weights": weights
                 }
                 output_data = {
+                    "run_id": run_id,
                     "crew_result": processed_result
                 }
                 log_run(input_data, output_data)
@@ -264,6 +275,7 @@ def main_app():
 
         if submit_feedback:
             feedback_entry = {
+                "run_id": run_id,
                 "resume_id": resume_first_name,
                 "job_role_id": role_input,
                 "name": name,
@@ -294,7 +306,7 @@ def log_run(input_data, output_data):
             logs = []
     else:
         logs = []
-    
+
     logs.append(log_entry)
     
     with open(log_file, "w") as file:
