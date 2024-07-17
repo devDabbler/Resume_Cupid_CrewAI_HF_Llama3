@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /home/rezcupid2024/Resume_Cupid_CrewAI_HF_Llama3/model_new:/app/model_new
+      - ./.env:/app/.env
+    ports:
+      - "8501:8501"
+    environment:
+      - MODEL_PATH=/app/model_new

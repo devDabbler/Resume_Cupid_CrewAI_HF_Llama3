@@ -1,0 +1,72 @@
+# API keys and sensitive information
+.env
+
+# Virtual environment
+venv/
+.venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Log files
+*.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# macOS files
+.DS_Store
+
+# Windows files
+Thumbs.db
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Distribution and build files
+dist/
+build/
+
+# Files and directories to ignore
+fine_tune_model/
+path_to_save_tokenized_dataset/
+tokenized_dataset/
+analysis.py
+evaluate_model.py
+feedback_data.json
+fine_tune_model.py
+llm_prediction.json
+minimal_script.py
+print_lables.py
+run_fitment_iterations.py
+run_logs.json
+save_dataset.py
+verify_labels.py
+
+# Large files and datasets
+*.json
+*.bin
+*.model
+*.h5
+*.csv
+Resume_Cupid_CrewAI_HF_Llama3/
+model/bert_model.onnx
+bert_model.onnx
+model/bert_model.onnx
+bert_model.onnx
+model/bert_model.onnx
+bert_model.onnx
+model/bert_model.onnx
+model/bert_model.onnx
+bert_model.onnx

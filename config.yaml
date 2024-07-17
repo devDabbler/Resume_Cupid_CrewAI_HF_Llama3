@@ -1,0 +1,16 @@
+credentials:
+  usernames:
+    tester1:
+      email: tester1@example.com
+      failed_login_attempts: 0
+      logged_in: False
+      name: Test User
+      password: Fractal123 # This will be hashed automatically
+
+cookie:
+  expiry_days: 30
+  key: some_signature_key
+  name: some_cookie_name
+
+pre-authorized:
+  emails: []

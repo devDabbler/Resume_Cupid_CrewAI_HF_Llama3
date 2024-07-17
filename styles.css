@@ -1,0 +1,105 @@
+/* Custom styles for Resume Cupid */
+
+/* Main container */
+.main {
+    padding: 2rem;
+}
+
+/* Header */
+h1 {
+    color: #4a4a4a;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Subheaders */
+h2, h3, h4 {
+    color: #2c3e50;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Form elements */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+.stButton > button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    font-weight: bold;
+}
+
+.stButton > button:hover {
+    background-color: #0056b3;
+}
+
+/* Results container */
+.css-1r6slb0 {
+    background-color: #f0f2f6;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+/* Expander */
+.streamlit-expander {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 1rem;
+}
+
+.stTabs [data-baseweb="tab"] {
+    height: 3rem;
+    white-space: pre-wrap;
+    background-color: #f8f9fa;
+    border-radius: 4px 4px 0 0;
+    gap: 1rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Sidebar */
+.css-1d391kg {
+    background-color: #f8f9fa;
+}
+
+/* File uploader */
+.stFileUploader > div > input::file-selector-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    font-weight: bold;
+}
+
+.stFileUploader > div > input::file-selector-button:hover {
+    background-color: #0056b3;
+}
+
+/* Progress bar */
+.stProgress > div > div > div > div {
+    background-color: #28a745;
+}
+
+/* Alert messages */
+.stAlert {
+    border-radius: 4px;
+}
