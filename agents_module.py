@@ -2,9 +2,13 @@ from crewai import Agent, Task
 import logging
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
+import spacy
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Load spaCy model
+nlp = spacy.load("en_core_web_sm")
 
 def fuzzy_match_skills(candidate_skills, required_skills, threshold=80):
     """
@@ -17,9 +21,22 @@ def fuzzy_match_skills(candidate_skills, required_skills, threshold=80):
             matched_skills.append((req_skill, matches[0][0], matches[0][1]))
     return matched_skills
 
-def weighted_scoring(criteria, experience_years=0, weight=1):
+def calculate_relevance(skill, job_description):
     """
-    Scoring Guidelines with weighted scoring:
+    Calculate the relevance of a skill to the job description
+    """
+    skill_doc = nlp(skill.lower())
+    job_doc = nlp(job_description.lower())
+    
+    skill_vector = skill_doc.vector
+    job_vector = job_doc.vector
+    
+    similarity = skill_vector.dot(job_vector) / (skill_vector.norm() * job_vector.norm())
+    return max(0, min(1, similarity))  # Ensure the result is between 0 and 1
+
+def weighted_scoring(criteria, experience_years=0, weight=1, relevance=1):
+    """
+    Scoring Guidelines with weighted scoring and relevance:
     - Expert (5 points): Extensive hands-on experience (5+ years)
     - Advanced (4 points): Strong hands-on experience (3-5 years)
     - Intermediate (3 points): Moderate hands-on experience (1-3 years)
@@ -44,8 +61,8 @@ def weighted_scoring(criteria, experience_years=0, weight=1):
     elif experience_years >= 5:
         score += 0.5
     
-    # Apply the weight factor
-    score *= weight
+    # Apply the weight factor and relevance
+    score *= weight * relevance
     
     return min(score, 5 * weight)  # Ensure the score doesn't exceed the maximum value
 
@@ -62,7 +79,7 @@ def create_skills_agent(llm):
         llm=llm,
         max_iters=1,
         allow_delegation=False,
-        scoring=weighted_scoring
+        scoring=lambda c, e, w, job_desc: weighted_scoring(c, e, w, relevance=calculate_relevance(c, job_desc))
     )
     return skills_agent
 
@@ -95,7 +112,7 @@ def create_experience_agent(llm):
         llm=llm,
         max_iters=1,
         allow_delegation=False,
-        scoring=weighted_scoring
+        scoring=lambda c, e, w, job_desc: weighted_scoring(c, e, w, relevance=calculate_relevance(c, job_desc))
     )
     return experience_agent
 

@@ -6,6 +6,7 @@ import logging
 from scipy import stats
 from fuzzywuzzy import fuzz
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import spacy
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -14,13 +15,16 @@ logger = logging.getLogger(__name__)
 # Initialize the Hugging Face NER pipeline
 skills_extractor = pipeline("ner", model="dslim/bert-base-NER")
 
+# Load spaCy model
+nlp = spacy.load("en_core_web_sm")
+
 skills_keywords = ["Skills", "Technical Skills", "Programming Languages", "Tools", "Technologies"]
 
 def extract_skills_with_huggingface(resume_text):
     # Extract skills using the Hugging Face NER pipeline
     entities = skills_extractor(resume_text)
-    skills = [entity['word'] for entity in entities if entity['entity'] == 'B-SKILL']
-    return skills
+    skills = [entity['word'] for entity in entities if entity['entity'] in ['B-SKILL', 'I-SKILL']]
+    return list(set(skills))  # Remove duplicates
 
 def read_all_pdf_pages(pdf_path):
     text = ''
@@ -71,6 +75,16 @@ def analyze_skills(skills_section, job_description, threshold=80):
             matched_skills.append((req_skill, best_match))
     return matched_skills
 
+def analyze_skill_relevance(skill, job_description):
+    skill_doc = nlp(skill.lower())
+    job_doc = nlp(job_description.lower())
+    
+    skill_vector = skill_doc.vector
+    job_vector = job_doc.vector
+    
+    similarity = skill_vector.dot(job_vector) / (skill_vector.norm() * job_vector.norm())
+    return max(0, min(1, similarity))  # Ensure the result is between 0 and 1
+
 def analyze_experience(experience_section, job_description):
     relevant_experience = []
     position_titles = []
@@ -91,10 +105,58 @@ def analyze_experience(experience_section, job_description):
         section_text = experience_section[section_start:section_end]
         bullet_points = bullet_point_pattern.findall(section_text)
 
-        if any(keyword in ' '.join(bullet_points).lower() for keyword in ['data scientist', 'machine learning', 'data analysis', 'python', 'sql', 'regression', 'unsupervised learning', 'time-series']):
-            relevant_experience.append(section_text.strip())
+        relevance_score = calculate_experience_relevance(section_text, job_description)
+        if relevance_score > 0.5:  # Adjust this threshold as needed
+            relevant_experience.append({
+                'title': title.strip(),
+                'company': company.strip(),
+                'duration': duration.strip(),
+                'description': section_text.strip(),
+                'relevance_score': relevance_score
+            })
 
-    return relevant_experience, position_titles
+    experience_depth = calculate_experience_depth(relevant_experience)
+    industry_relevance = calculate_industry_relevance(relevant_experience, job_description)
+    
+    return relevant_experience, position_titles, experience_depth, industry_relevance
+
+def calculate_experience_relevance(experience_text, job_description):
+    exp_doc = nlp(experience_text.lower())
+    job_doc = nlp(job_description.lower())
+    
+    exp_vector = exp_doc.vector
+    job_vector = job_doc.vector
+    
+    similarity = exp_vector.dot(job_vector) / (exp_vector.norm() * job_vector.norm())
+    return max(0, min(1, similarity))  # Ensure the result is between 0 and 1
+
+def calculate_experience_depth(relevant_experience):
+    total_years = 0
+    for exp in relevant_experience:
+        years = extract_years_from_duration(exp['duration'])
+        total_years += years * exp['relevance_score']
+    return min(10, total_years)  # Cap at 10 years
+
+def extract_years_from_duration(duration):
+    # This is a simple implementation. You might want to make it more robust.
+    years = re.findall(r'(\d+)\s*years?', duration.lower())
+    return int(years[0]) if years else 0
+
+def calculate_industry_relevance(relevant_experience, job_description):
+    industry_keywords = extract_industry_keywords(job_description)
+    relevance_scores = []
+    
+    for exp in relevant_experience:
+        exp_text = f"{exp['title']} {exp['company']} {exp['description']}"
+        relevance = sum(keyword in exp_text.lower() for keyword in industry_keywords)
+        relevance_scores.append(relevance)
+    
+    return min(10, max(relevance_scores)) if relevance_scores else 0
+
+def extract_industry_keywords(job_description):
+    # This is a simple keyword extraction. You might want to use more advanced NLP techniques.
+    doc = nlp(job_description.lower())
+    return [token.text for token in doc if token.pos_ in ['NOUN', 'PROPN'] and not token.is_stop]
 
 def normalize_score(score, min_score, max_score):
     """
@@ -116,7 +178,15 @@ def calculate_overall_fitment(scores):
     """
     Calculate the overall fitment score based on multiple evaluation scores
     """
-    return np.mean(scores) * 10  # Convert 0-10 scale to percentage
+    weights = {
+        'skills': 0.4,
+        'experience': 0.4,
+        'education': 0.1,
+        'industry_relevance': 0.1
+    }
+    
+    weighted_scores = [score * weights[category] for category, score in scores.items()]
+    return sum(weighted_scores)
 
 def log_evaluation_step(step_name, input_data, output_data, scores):
     """

@@ -22,18 +22,29 @@ def create_calibration_task(job_description, resume, resume_calibrator, role, pa
            - For each requirement, provide:
              a) Whether the candidate meets it (Yes/Partially/No)
              b) Brief justification for the assessment
+             c) Relevance score (0-10) of this requirement to the role
 
         3. Skills Gap Analysis:
            - Identify any missing or underdeveloped skills.
            - Suggest potential areas for improvement or additional training.
+           - Provide a gap score (0-10) for each identified gap.
 
         4. Experience Alignment:
            - Evaluate how well the candidate's experience aligns with the role.
            - Highlight any particularly relevant or impressive experiences.
+           - Provide an experience alignment score (0-10).
 
-        5. Calibration Adjustments:
+        5. Industry Relevance:
+           - Assess the candidate's industry experience relevance to the role.
+           - Provide an industry relevance score (0-10).
+
+        6. Calibration Adjustments:
            - Based on the detailed analysis, adjust the initial calibration score if necessary.
            - Explain any significant adjustments made.
+
+        7. Overall Fitment Score:
+           - Calculate the final fitment score (0-100) based on all the above factors.
+           - Provide a brief explanation of how this score was determined.
 
         Use the given parameters and job description to inform your evaluation.
         Parameters: {parameters}
@@ -50,6 +61,7 @@ def create_skill_evaluation_task(job_description, resume_skills, skills_agent, r
           b) Evidence from resume
           c) Alignment with job requirements
           d) Score (0-10)
+          e) Relevance to the role (0-10)
         ''' for skill, weight in zip(required_skills, weights)
     ])
 
@@ -69,13 +81,25 @@ def create_skill_evaluation_task(job_description, resume_skills, skills_agent, r
         3. Skill Gap Analysis:
            - Identify any missing or underdeveloped skills.
            - Suggest potential areas for improvement or additional training.
+           - Provide a gap score (0-10) for each identified gap.
 
-        4. Impact on Role Performance:
+        4. Skill Relevance Analysis:
+           - For each skill, analyze its relevance to the specific role and industry.
+           - Provide a relevance score (0-10) for each skill.
+
+        5. Skill Application:
+           - Evaluate how the candidate has applied these skills in their past experiences.
+           - Provide examples of effective skill application from the resume.
+           - Assign an application score (0-10) for each skill.
+
+        6. Impact on Role Performance:
            - Explain how the candidate's skill set contributes to success in the role.
            - Assess potential limitations based on the candidate's current skill levels.
+           - Provide an overall impact score (0-10).
 
-        5. Recommendations:
+        7. Recommendations:
            - Suggest any additional training or experience that would benefit the candidate.
+           - Prioritize these recommendations (High/Medium/Low).
 
         Use the following information to inform your evaluation:
         Job Requirements: {job_description}
@@ -109,15 +133,30 @@ def create_experience_evaluation_task(job_description, resume_text, experience_a
 
         Relevant Experience:
         - [List relevant experiences with brief explanations of their importance]
+        - For each experience, provide a relevance score (0-10)
 
         Irrelevant Experience:
         - [List irrelevant experiences and explain why they don't apply to this role]
 
         Gaps:
         - [Identify specific gaps in the candidate's experience relative to the job requirements]
+        - For each gap, provide a severity score (0-10)
+
+        Depth of Experience:
+        - Analyze the depth of experience in key areas related to the role.
+        - Provide a depth score (0-10) for each key area.
+
+        Industry Relevance:
+        - Evaluate the relevance of the candidate's industry experience.
+        - Provide an industry relevance score (0-10).
+
+        Career Progression:
+        - Analyze the candidate's career progression and growth.
+        - Provide a progression score (0-10).
 
         Areas of Improvement:
         - [Suggest concrete areas where the candidate should focus on improving]
+        - Prioritize these areas (High/Medium/Low)
 
         Concluding Statement: [Provide a concluding statement about the candidate's experience fitment for the role]
 
@@ -144,7 +183,9 @@ def log_run(input_data, output_data):
     Weights: {input_data['weights']}
 
     Output:
-    {output_data['fitment_score']}
+    Fitment Score: {output_data['fitment_score']}
+    Skill Score: {output_data['skill_score']}
+    Experience Score: {output_data['experience_score']}
     Recommendation: {output_data['recommendation']}
     Detailed Report: {output_data['detailed_report']}
 
