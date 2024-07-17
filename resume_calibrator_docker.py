@@ -1,7 +1,7 @@
 import os
 import tempfile
 import traceback
-import time  # Add this import for the progress bar
+import time
 import streamlit as st
 from dotenv import load_dotenv, find_dotenv
 import re
@@ -167,7 +167,11 @@ def main_app():
     st.title("Resume Cupid")
     st.markdown("Use this app to help you decide if a candidate is a good fit for a specific role.")
 
-    run_id = str(uuid.uuid4())  # Generate a unique ID for each run
+    # Generate a unique ID for each run if it does not exist
+    if "run_id" not in st.session_state:
+        st.session_state["run_id"] = str(uuid.uuid4())
+    run_id = st.session_state["run_id"]
+
     resume_first_name = ""  # Initialize resume_first_name variable
 
     with st.form(key='resume_form'):
