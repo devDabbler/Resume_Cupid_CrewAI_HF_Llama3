@@ -12,43 +12,28 @@ def create_calibration_task(job_description, resume, resume_calibrator, role, pa
         Evaluate the fitment of the provided resume against the job requirements for the role of {role}.
         Provide a detailed evaluation report with the following structure:
 
-        Calibration Report:
-        1. Overall Assessment:
-           - Provide a brief summary of the candidate's overall fitment.
-           - Assign an initial calibration score (0-100).
+        1. Fitment Score: [Score as a percentage between 0 and 100]%
 
-        2. Key Requirements Analysis:
-           - List each key requirement from the job description.
-           - For each requirement, provide:
-             a) Whether the candidate meets it (Yes/Partially/No)
-             b) Brief justification for the assessment
-             c) Relevance score (0-10) of this requirement to the role
+        2. Interview Recommendation: [Clear recommendation on whether to interview the candidate]
 
-        3. Skills Gap Analysis:
-           - Identify any missing or underdeveloped skills.
-           - Suggest potential areas for improvement or additional training.
-           - Provide a gap score (0-10) for each identified gap.
+        3. Fitment:
+           [Detailed analysis of how well the candidate fits the role]
 
-        4. Experience Alignment:
-           - Evaluate how well the candidate's experience aligns with the role.
-           - Highlight any particularly relevant or impressive experiences.
-           - Provide an experience alignment score (0-10).
+        4. Relevant Experience:
+           [List of relevant experiences with brief explanations]
 
-        5. Industry Relevance:
-           - Assess the candidate's industry experience relevance to the role.
-           - Provide an industry relevance score (0-10).
+        5. Gaps:
+           [Identify specific gaps in the candidate's profile relative to the job requirements]
 
-        6. Calibration Adjustments:
-           - Based on the detailed analysis, adjust the initial calibration score if necessary.
-           - Explain any significant adjustments made.
-
-        7. Overall Fitment Score:
-           - Calculate the final fitment score (0-100) based on all the above factors.
-           - Provide a brief explanation of how this score was determined.
+        6. Areas to Improve:
+           [Suggest concrete areas where the candidate should focus on improving]
 
         Use the given parameters and job description to inform your evaluation.
         Parameters: {parameters}
         Job Description: {job_description}
+        Resume: {resume}
+
+        Ensure that your evaluation is specific to this candidate and role. Avoid generic assessments.
         """,
         agent=resume_calibrator
     )
