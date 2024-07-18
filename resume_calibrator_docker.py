@@ -202,13 +202,33 @@ def calculate_weights(rankings):
 
 def process_crew_result(result):
     if isinstance(result, dict):
-        return json.dumps(result)
-    elif hasattr(result, 'content'):
-        return result.content
-    elif isinstance(result, str):
         return result
+    elif hasattr(result, 'content'):
+        try:
+            return json.loads(result.content)
+        except json.JSONDecodeError:
+            return parse_unstructured_result(result.content)
+    elif isinstance(result, str):
+        try:
+            return json.loads(result)
+        except json.JSONDecodeError:
+            return parse_unstructured_result(result)
     else:
         return str(result)
+
+def parse_unstructured_result(content):
+    sections = content.split('\n\n')
+    result = {}
+    current_section = None
+    for section in sections:
+        if ':' in section:
+            key, value = section.split(':', 1)
+            key = key.strip().lower().replace(' ', '_')
+            result[key] = value.strip()
+            current_section = key
+        elif current_section:
+            result[current_section] += '\n' + section.strip()
+    return result
 
 def get_recommendation(fitment_score):
     if fitment_score >= 85:
@@ -225,88 +245,27 @@ def get_recommendation(fitment_score):
         return "This candidate does not meet most of the key requirements. Not recommended for this position."
 
 def display_crew_results(crew_result):
-    content = process_crew_result(crew_result)
-    
-    # Try to parse the content as JSON
-    try:
-        result_dict = json.loads(content)
-    except json.JSONDecodeError:
-        result_dict = None
-
-    if isinstance(result_dict, dict):
-        # If it's a dictionary, display each section
-        if 'fitment_score' in result_dict:
-            st.subheader(f"Fitment Score: {result_dict['fitment_score']:.1f}%")
-        
-        if 'recommendation' in result_dict:
-            st.subheader("Interview Recommendation")
-            st.write(result_dict['recommendation'])
-        
-        for key in ['fitment', 'relevant_experience', 'gaps', 'areas_to_improve']:
-            if key in result_dict:
-                st.subheader(key.replace('_', ' ').title())
-                st.write(result_dict[key])
-    else:
-        # If it's not a dictionary, try to parse sections from the text
-        sections = content.split('\n\n')
-        for section in sections:
-            if section.startswith('Fitment Score:'):
-                score = float(section.split(':')[1].strip().rstrip('%'))
-                st.subheader(f"Fitment Score: {score:.1f}%")
-            elif section.startswith('Interview Recommendation:'):
-                st.subheader("Interview Recommendation")
-                st.write(section.split(':', 1)[1].strip())
-            elif ':' in section:
-                title, content = section.split(':', 1)
-                st.subheader(title.strip())
-                st.write(content.strip())
-            else:
-                st.write(section)
-
-    if hasattr(crew_result, 'response_metadata'):
-        st.subheader("Response Metadata")
-        st.json(crew_result.response_metadata)
-    
-    if hasattr(crew_result, 'content'):
-        content = crew_result.content
-    elif isinstance(crew_result, dict) and 'content' in crew_result:
-        content = crew_result['content']
-    else:
-        content = str(crew_result)
-
-    # Split the content into sections
-    sections = content.split('\n\n')
-    
-    for section in sections:
-        if "Total Score:" in section:
-            st.subheader("Overall Evaluation")
-            st.write(section)
-        elif ":" in section:
-            title, details = section.split(':', 1)
-            st.subheader(title.strip())
-            st.write(details.strip())
-        else:
-            st.write(section)
-
-    if hasattr(crew_result, 'response_metadata'):
-        st.subheader("Response Metadata")
-        st.json(crew_result.response_metadata)
+    if isinstance(crew_result, str):
+        crew_result = process_crew_result(crew_result)
     
     if isinstance(crew_result, dict):
-        for key, value in crew_result.items():
-            if key == "fitment_score":
-                st.subheader(f"Fitment Score: {value:.1f}%")
-            elif key == "recommendation":
-                st.subheader("Recommendation")
-                st.write(value)
-            else:
-                st.subheader(key.capitalize())
-                st.write(value)
-    elif isinstance(crew_result, list):
-        for item in crew_result:
-            display_crew_results(item)
+        if 'fitment_score' in crew_result:
+            st.subheader(f"Fitment Score: {crew_result['fitment_score']}")
+        
+        if 'interview_recommendation' in crew_result:
+            st.subheader("Interview Recommendation")
+            st.write(crew_result['interview_recommendation'])
+        
+        for key in ['fitment', 'relevant_experience', 'gaps', 'areas_to_improve']:
+            if key in crew_result:
+                st.subheader(key.replace('_', ' ').title())
+                st.write(crew_result[key])
     else:
         st.write(crew_result)
+
+    if hasattr(crew_result, 'response_metadata'):
+        st.subheader("Response Metadata")
+        st.json(crew_result.response_metadata)
 
 def process_large_text(text, chunk_size=5000):
     chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
@@ -500,28 +459,16 @@ def main_app():
                     status_text.text("Finalizing the results...")
             
             try:
-                st.write("Debug: Generating hash for caching")
-                # Generate a hash for caching
-                input_hash = hashlib.md5(f"{job_description}{resume_text}{role}{str(parameters)}{str(weights)}".encode()).hexdigest()
-                
-                st.write("Debug: Preparing messages")
-                # Prepare the messages
-                messages = [
-                    {"role": "system", "content": "You are an AI assistant helping with resume evaluation."},
-                    {"role": "human", "content": f"Job Description: {job_description}\n\nResume: {resume_text}\n\nRole: {role}\n\nParameters: {parameters}\n\nWeights: {weights}"}
-                ]
-                
-                st.write("Debug: Calling API")
-                # Try to get cached result
-                crew_result = cached_api_call(messages)
-                
-                st.write("Debug: API call completed")
-                logging.info(f"Raw result from API call: {crew_result}")
+                st.write("Debug: Calling crew.kickoff()")
+                crew_result = crew.kickoff()
+                st.write("Debug: crew.kickoff() completed")
+    
+                logging.info(f"Raw result from crew.kickoff(): {crew_result}")
                 if not crew_result:
-                    raise ValueError("API call returned an empty result")
+                    raise ValueError("Crew.kickoff() returned an empty result")
                 processed_result = process_crew_result(crew_result)
                 logging.info(f"Processed result: {processed_result}")
-                
+    
                 st.write("Debug: About to display results")
                 display_crew_results(processed_result)
                 st.write("Debug: Finished displaying results")
