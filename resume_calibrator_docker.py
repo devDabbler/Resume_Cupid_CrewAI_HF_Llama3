@@ -379,87 +379,77 @@ def main_app():
         
         submitted = st.form_submit_button('Submit')
 
-    if submitted:
-        st.write("Form submitted")
-        if resume_file is not None:
-            st.write("Resume file uploaded")
-            if len(job_description) > 100:
-                st.write("Job description is long enough")
+    if submitted and resume_file is not None and len(job_description) > 100:
+        try:
+            resume_data = parse_resume(resume_file)
+            resume_text = resume_data["full_text"]
+            
+            logging.info(f"Extracted resume text: {resume_text[:1000]}")
 
-                try:
-                    resume_data = parse_resume(resume_file)
-                    resume_text = resume_data["full_text"]
-                    
-                    st.write("Parsed resume text")
-                    logging.info(f"Extracted resume text: {resume_text[:1000]}")
+            resume_first_name = extract_first_name(resume_text)
 
-                    resume_first_name = extract_first_name(resume_text)
+            if len(resume_text) > 10000 or len(job_description) > 5000:
+                resume_text = process_large_text(resume_text)
+                job_description = process_large_text(job_description)
 
-                    if len(resume_text) > 10000 or len(job_description) > 5000:
-                        resume_text = process_large_text(resume_text)
-                        job_description = process_large_text(job_description)
+            resume_calibrator = create_resume_calibrator_agent(llm)
+            skills_agent = create_skills_agent(llm)
+            experience_agent = create_experience_agent(llm)
 
-                    resume_calibrator = create_resume_calibrator_agent(llm)
-                    skills_agent = create_skills_agent(llm)
-                    experience_agent = create_experience_agent(llm)
+            parameters = user_skills + [f"{min_experience} or more years of experience"]
+            weights = calculate_weights(skill_rankings)
+            weights = [str(weight) for weight in weights]
 
-                    parameters = user_skills + [f"{min_experience} or more years of experience"]
-                    weights = calculate_weights(skill_rankings)
-                    weights = [str(weight) for weight in weights]
+            calibration_task = create_calibration_task(job_description, resume_text, resume_calibrator, role, parameters)
+            skill_evaluation_task = create_skill_evaluation_task(job_description, resume_text, skills_agent, role, weights, user_skills)
+            experience_evaluation_task = create_experience_evaluation_task(job_description, resume_text, experience_agent, role)
 
-                    calibration_task = create_calibration_task(job_description, resume_text, resume_calibrator, role, parameters)
-                    skill_evaluation_task = create_skill_evaluation_task(job_description, resume_text, skills_agent, role, weights, user_skills)
-                    experience_evaluation_task = create_experience_evaluation_task(job_description, resume_text, experience_agent, role)
+            crew = Crew(
+                agents=[resume_calibrator, skills_agent, experience_agent],
+                tasks=[calibration_task, skill_evaluation_task, experience_evaluation_task],
+                verbose=True
+            )
+            
+            # Enhanced progress bar
+            status_text = st.empty()
+            progress_bar = st.progress(0)
+            for i in range(100):
+                time.sleep(0.05)  # Simulate some work
+                progress_bar.progress(i + 1)
+                if i < 33:
+                    status_text.text("Starting the calibration...")
+                elif i < 66:
+                    status_text.text("Processing the evaluation...")
+                else:
+                    status_text.text("Finalizing the results...")
+            
+            crew_result = crew.kickoff()
+            if not crew_result:
+                raise ValueError("Crew.kickoff() returned an empty result")
+            processed_result = process_crew_result(crew_result)
+            display_crew_results(processed_result)
+            st.success("Evaluation Complete!")
 
-                    crew = Crew(
-                        agents=[resume_calibrator, skills_agent, experience_agent],
-                        tasks=[calibration_task, skill_evaluation_task, experience_evaluation_task],
-                        verbose=True
-                    )
-                    
-                    # Enhanced progress bar
-                    status_text = st.empty()
-                    progress_bar = st.progress(0)
-                    for i in range(100):
-                        time.sleep(0.05)  # Simulate some work
-                        progress_bar.progress(i + 1)
-                        if i < 33:
-                            status_text.text("Starting the calibration...")
-                        elif i < 66:
-                            status_text.text("Processing the evaluation...")
-                        else:
-                            status_text.text("Finalizing the results...")
-                    
-                    crew_result = crew.kickoff()
-                    if not crew_result:
-                        raise ValueError("Crew.kickoff() returned an empty result")
-                    processed_result = process_crew_result(crew_result)
-                    display_crew_results(processed_result)
-                    st.success("Evaluation Complete!")
-
-                    input_data = {
-                        "run_id": run_id,
-                        "job_description": job_description,
-                        "resume": resume_text,
-                        "role": role,
-                        "parameters": parameters,
-                        "weights": weights
-                    }
-                    output_data = {
-                        "run_id": run_id,
-                        "crew_result": processed_result
-                    }
-                    
-                    log_run(input_data, output_data)
-                
-                except Exception as e:
-                    logging.error(f"Error in processing: {str(e)}")
-                    logging.error(f"Traceback: {traceback.format_exc()}")
-                    st.error(f"Error: Unable to process the resume. {str(e)}")
-            else:
-                st.error("Job description is too short. Please provide more details.")
-        else:
-            st.error("Please upload a resume file.")
+            input_data = {
+                "run_id": run_id,
+                "job_description": job_description,
+                "resume": resume_text,
+                "role": role,
+                "parameters": parameters,
+                "weights": weights
+            }
+            output_data = {
+                "run_id": run_id,
+                "crew_result": processed_result
+            }
+            
+            log_run(input_data, output_data)
+        
+        except Exception as e:
+            logging.error(f"Error in processing: {str(e)}")
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            st.error(f"Error: Unable to process the resume. {str(e)}")
+    
     else:
         st.write("Awaiting input and file upload...")
 
