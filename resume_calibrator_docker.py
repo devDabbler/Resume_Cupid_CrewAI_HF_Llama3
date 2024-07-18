@@ -201,20 +201,42 @@ def calculate_weights(rankings):
     return [rank / total for rank in rankings]
 
 def process_crew_result(result):
+    st.write("Debug: Inside process_crew_result")
+    st.write(f"Debug: Result type: {type(result)}")
+    st.write(f"Debug: Raw result: {result}")
+    
     if isinstance(result, dict):
         return result
     elif hasattr(result, 'content'):
+        st.write(f"Debug: Result has content attribute: {result.content}")
         try:
             return json.loads(result.content)
         except json.JSONDecodeError:
             return parse_unstructured_result(result.content)
     elif isinstance(result, str):
+        st.write(f"Debug: Result is a string")
         try:
             return json.loads(result)
         except json.JSONDecodeError:
             return parse_unstructured_result(result)
     else:
         return str(result)
+
+def parse_unstructured_result(content):
+    st.write("Debug: Parsing unstructured result")
+    sections = content.split('\n\n')
+    result = {}
+    current_section = None
+    for section in sections:
+        if ':' in section:
+            key, value = section.split(':', 1)
+            key = key.strip().lower().replace(' ', '_')
+            result[key] = value.strip()
+            current_section = key
+        elif current_section:
+            result[current_section] += '\n' + section.strip()
+    st.write(f"Debug: Parsed result: {result}")
+    return result
 
 def parse_unstructured_result(content):
     sections = content.split('\n\n')
@@ -245,6 +267,10 @@ def get_recommendation(fitment_score):
         return "This candidate does not meet most of the key requirements. Not recommended for this position."
 
 def display_crew_results(crew_result):
+    st.write("Debug: Inside display_crew_results")
+    st.write(f"Debug: Crew result type: {type(crew_result)}")
+    st.write(f"Debug: Crew result: {crew_result}")
+    
     if isinstance(crew_result, str):
         crew_result = process_crew_result(crew_result)
     
@@ -261,6 +287,7 @@ def display_crew_results(crew_result):
                 st.subheader(key.replace('_', ' ').title())
                 st.write(crew_result[key])
     else:
+        st.write("Debug: Crew result is not a dictionary")
         st.write(crew_result)
 
     if hasattr(crew_result, 'response_metadata'):
@@ -463,10 +490,12 @@ def main_app():
                 crew_result = crew.kickoff()
                 st.write("Debug: crew.kickoff() completed")
     
+                st.write(f"Debug: Raw crew result: {crew_result}")
                 logging.info(f"Raw result from crew.kickoff(): {crew_result}")
                 if not crew_result:
-                    raise ValueError("Crew.kickoff() returned an empty result")
+                        raise ValueError("Crew.kickoff() returned an empty result")
                 processed_result = process_crew_result(crew_result)
+                st.write(f"Debug: Processed result: {processed_result}")
                 logging.info(f"Processed result: {processed_result}")
     
                 st.write("Debug: About to display results")

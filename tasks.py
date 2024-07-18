@@ -12,21 +12,14 @@ def create_calibration_task(job_description, resume, resume_calibrator, role, pa
         Evaluate the fitment of the provided resume against the job requirements for the role of {role}.
         Provide a detailed evaluation report with the following structure:
 
-        1. Fitment Score: [Score as a percentage between 0 and 100]%
-
-        2. Interview Recommendation: [Clear recommendation on whether to interview the candidate]
-
-        3. Fitment:
-           [Detailed analysis of how well the candidate fits the role]
-
-        4. Relevant Experience:
-           [List of relevant experiences with brief explanations]
-
-        5. Gaps:
-           [Identify specific gaps in the candidate's profile relative to the job requirements]
-
-        6. Areas to Improve:
-           [Suggest concrete areas where the candidate should focus on improving]
+        {{
+            "fitment_score": [Score as a percentage between 0 and 100],
+            "interview_recommendation": "[Clear recommendation on whether to interview the candidate]",
+            "fitment": "[Detailed analysis of how well the candidate fits the role]",
+            "relevant_experience": "[List of relevant experiences with brief explanations]",
+            "gaps": "[Identify specific gaps in the candidate's profile relative to the job requirements]",
+            "areas_to_improve": "[Suggest concrete areas where the candidate should focus on improving]"
+        }}
 
         Use the given parameters and job description to inform your evaluation.
         Parameters: {parameters}
@@ -34,6 +27,7 @@ def create_calibration_task(job_description, resume, resume_calibrator, role, pa
         Resume: {resume}
 
         Ensure that your evaluation is specific to this candidate and role. Avoid generic assessments.
+        Your response should be a valid JSON object.
         """,
         agent=resume_calibrator
     )
