@@ -228,7 +228,10 @@ def display_crew_results(crew_result):
     
     if isinstance(crew_result, dict):
         if 'experience_fitment_score' in crew_result:
-            st.subheader(f"Experience Fitment Score: {crew_result['experience_fitment_score']}")
+            fitment_score = int(crew_result['experience_fitment_score'].strip('%'))
+            recommendation = get_recommendation(fitment_score)
+            st.subheader(f"Experience Fitment Score: {fitment_score}%")
+            st.write(recommendation)
         
         if 'overall_assessment' in crew_result:
             st.subheader("Overall Assessment")
@@ -240,6 +243,7 @@ def display_crew_results(crew_result):
                 st.write(crew_result[key])
     else:
         st.write(crew_result)
+
 
 def process_large_text(text, chunk_size=5000):
     chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
@@ -288,6 +292,20 @@ def combine_results(results):
             combined["word_freq"][word] = combined["word_freq"].get(word, 0) + freq
     
     return combined
+
+def get_recommendation(fitment_score):
+    if fitment_score >= 85:
+        return "This candidate is an exceptional fit and should be strongly considered for an interview."
+    elif fitment_score >= 75:
+        return "This candidate is a strong fit and should be considered for an interview."
+    elif fitment_score >= 65:
+        return "This candidate shows promise but may need additional evaluation in some areas."
+    elif fitment_score >= 55:
+        return "This candidate meets some requirements but has significant gaps. Consider for a more junior role or different position."
+    elif fitment_score >= 45:
+        return "This candidate has relevant experience but may not be suitable for this specific role. Consider for other positions within the organization."
+    else:
+        return "This candidate does not meet most of the key requirements. Not recommended for this position."
 
 class RateLimiter:
     def __init__(self, max_calls, period):
@@ -424,7 +442,6 @@ def main_app():
                     status_text.text("Finalizing the results...")
             
             crew_result = crew.kickoff()
-            st.write(f"Debug: Raw crew result: {crew_result}")
             if not crew_result:
                 raise ValueError("Crew.kickoff() returned an empty result")
             processed_result = process_crew_result(crew_result)
