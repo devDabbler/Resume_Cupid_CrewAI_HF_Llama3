@@ -223,8 +223,6 @@ def parse_unstructured_result(content):
     return result
 
 def display_crew_results(crew_result):
-    st.write("Debug: Inside display_crew_results")
-    st.write(f"Debug: Raw crew result: {crew_result}")
     if isinstance(crew_result, str):
         crew_result = process_crew_result(crew_result)
     
