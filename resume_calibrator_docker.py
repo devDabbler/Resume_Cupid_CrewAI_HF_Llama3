@@ -223,6 +223,8 @@ def parse_unstructured_result(content):
     return result
 
 def display_crew_results(crew_result):
+    st.write("Debug: Inside display_crew_results")
+    st.write(f"Debug: Raw crew result: {crew_result}")
     if isinstance(crew_result, str):
         crew_result = process_crew_result(crew_result)
     
@@ -243,7 +245,6 @@ def display_crew_results(crew_result):
                 st.write(crew_result[key])
     else:
         st.write(crew_result)
-
 
 def process_large_text(text, chunk_size=5000):
     chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
@@ -441,7 +442,10 @@ def main_app():
                 else:
                     status_text.text("Finalizing the results...")
             
+            st.write("Debug: Before crew.kickoff()")
             crew_result = crew.kickoff()
+            st.write("Debug: After crew.kickoff()")
+            st.write(f"Debug: Raw crew result: {crew_result}")
             if not crew_result:
                 raise ValueError("Crew.kickoff() returned an empty result")
             processed_result = process_crew_result(crew_result)
