@@ -161,7 +161,7 @@ def login():
         .footer-text {
             text-align: center;
             width: 100%;
-            max-width: 800px;
+            max-width: 800px.
             margin: 1rem auto.
         }
         h3 {
@@ -223,8 +223,6 @@ def parse_unstructured_result(content):
     return result
 
 def display_crew_results(crew_result):
-    st.write("Debug: Inside display_crew_results")
-    st.write(f"Debug: Raw crew result: {crew_result}")
     if isinstance(crew_result, str):
         crew_result = process_crew_result(crew_result)
     
@@ -442,10 +440,7 @@ def main_app():
                 else:
                     status_text.text("Finalizing the results...")
             
-            st.write("Debug: Before crew.kickoff()")
             crew_result = crew.kickoff()
-            st.write("Debug: After crew.kickoff()")
-            st.write(f"Debug: Raw crew result: {crew_result}")
             if not crew_result:
                 raise ValueError("Crew.kickoff() returned an empty result")
             processed_result = process_crew_result(crew_result)
