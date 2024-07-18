@@ -6,7 +6,7 @@ import streamlit as st
 from dotenv import load_dotenv, find_dotenv
 import re
 import logging
-import fitz  # PyMuPDF
+import PyPDF2
 from docx import Document
 from agents_module import create_resume_calibrator_agent, create_skills_agent, create_experience_agent
 from tasks_local import create_calibration_task, create_skill_evaluation_task, create_experience_evaluation_task, log_run
@@ -21,7 +21,12 @@ import spacy
 from spacy.matcher import PhraseMatcher
 from langchain_core.messages import HumanMessage
 from fuzzywuzzy import fuzz
-import uuid  # Import UUID library
+import uuid
+import concurrent.futures
+from tenacity import retry, stop_after_attempt, wait_fixed
+import redis
+from rq import Queue
+from rq.job import Job
 
 # Streamlit UI setup
 st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
@@ -47,6 +52,11 @@ FEEDBACK_FILE = os.getenv("FEEDBACK_FILE")
 if not FEEDBACK_FILE:
     st.error("FEEDBACK_FILE environment variable is not set.")
     st.stop()
+
+# Initialize Redis connection
+redis_conn = redis.Redis()
+# Create a queue
+q = Queue(connection=redis_conn)
 
 # Load feedback data from file
 @st.cache_data
@@ -78,7 +88,46 @@ def extract_first_name(resume_text):
         return match.group(1)
     return "Unknown"
 
-# Function to parse resume
+# Improved parsing functions
+def parse_pdf(file):
+    pdf_reader = PyPDF2.PdfReader(file)
+    text = ""
+    for page in pdf_reader.pages:
+        text += page.extract_text() + "\n"
+    
+    # Use regex to extract structured information
+    name = re.search(r"Name:?\s*([\w\s]+)", text, re.IGNORECASE)
+    email = re.search(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", text)
+    phone = re.search(r"\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}", text)
+    
+    structured_data = {
+        "full_text": text,
+        "name": name.group(1) if name else "Not found",
+        "email": email.group(0) if email else "Not found",
+        "phone": phone.group(0) if phone else "Not found",
+    }
+    return structured_data
+
+def parse_docx(file):
+    doc = Document(file)
+    full_text = ""
+    structured_data = {
+        "full_text": "",
+        "sections": {}
+    }
+    current_section = "header"
+
+    for para in doc.paragraphs:
+        full_text += para.text + "\n"
+        if para.style.name.startswith('Heading'):
+            current_section = para.text
+            structured_data["sections"][current_section] = ""
+        else:
+            structured_data["sections"][current_section] += para.text + "\n"
+
+    structured_data["full_text"] = full_text
+    return structured_data
+
 def parse_resume(file):
     if file.type == "application/pdf":
         return parse_pdf(file)
@@ -87,31 +136,71 @@ def parse_resume(file):
     else:
         raise ValueError("Unsupported file format")
 
-def parse_pdf(file):
-    with fitz.open(stream=file.read(), filetype="pdf") as doc:
-        text = ""
-        for page in doc:
-            text += page.get_text()
-    return text
-
-def parse_docx(file):
-    doc = Document(file)
-    return "\n".join([para.text for para in doc.paragraphs])
-
 # Fetch login credentials from environment variables
 LOGIN_USERNAME = os.getenv('LOGIN_USERNAME')
 LOGIN_PASSWORD = os.getenv('LOGIN_PASSWORD')
 
 # Login form
 def login():
-    st.title("Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        if username == LOGIN_USERNAME and password == LOGIN_PASSWORD:
-            st.session_state["logged_in"] = True
-        else:
-            st.error("Invalid username or password")
+    st.markdown("""
+        <style>
+        .reportview-container .main .block-container {
+            max-width: 1000px;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        .auth-form {
+            width: 100%;
+            max-width: 800px;
+            margin: 1rem auto 0;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .stTextInput > div > div > input {
+            background-color: white;
+            padding: 0.5rem;
+            border: 1px solid #adb5bd;
+        }
+        .stButton > button {
+            width: 100%;
+        }
+        .footer-text {
+            text-align: center;
+            width: 100%;
+            max-width: 800px;
+            margin: 1rem auto;
+        }
+        h3 {
+            margin-bottom: 1rem !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<h1 style='text-align: center; font-size: 48px; margin-bottom: 0;'>💘</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; margin-top: 0;'>Welcome to Resume Cupid</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>Login to access the resume evaluation tool</h3>", unsafe_allow_html=True)
+
+    with st.container():
+        st.markdown('<div class="auth-form">', unsafe_allow_html=True)
+        with st.form("login_form", clear_on_submit=False):
+            st.text_input("Username", key="username")
+            st.text_input("Password", type="password", key="password")
+            submit_button = st.form_submit_button("Login")
+            
+            if submit_button:
+                username = st.session_state.username
+                password = st.session_state.password
+                if username == LOGIN_USERNAME and password == LOGIN_PASSWORD:
+                    st.session_state["logged_in"] = True
+                    st.success("Login successful! Redirecting...")
+                    st.experimental_rerun()
+                else:
+                    st.error("Invalid username or password")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown("<div class='footer-text'>Don't have an account? <a href='mailto:hello@resumecupid.ai'>Contact us</a> to get started!</div>", unsafe_allow_html=True)
 
 def calculate_weights(rankings):
     total = sum(rankings)
@@ -140,28 +229,85 @@ def get_recommendation(fitment_score):
         return "This candidate does not meet most of the key requirements. Not recommended for this position."
 
 def display_crew_results(crew_result):
-    lines = crew_result.split('\n')
-    
-    # Extract fitment score
-    fitment_score_line = next((line for line in lines if "Experience Fitment Score:" in line), None)
-    if fitment_score_line:
-        # Extract the score, removing any non-numeric characters
-        score_text = ''.join(char for char in fitment_score_line.split(':')[1] if char.isdigit() or char == '.')
+    if isinstance(crew_result, str):
         try:
-            fitment_score = float(score_text)
-            st.subheader(f"Experience Fitment Score: {fitment_score:.1f}%")
-            
-            # Get and display recommendation
-            recommendation = get_recommendation(fitment_score)
-            st.subheader("Interview Recommendation")
-            st.write(recommendation)
-        except ValueError:
-            st.error(f"Unable to parse fitment score: {score_text}")
-    else:
-        st.error("Fitment score not found in the evaluation result.")
+            crew_result = json.loads(crew_result)
+        except json.JSONDecodeError:
+            st.write(crew_result)
+            return
     
-    # Display the full report
-    st.markdown(crew_result)
+    if isinstance(crew_result, dict):
+        for key, value in crew_result.items():
+            if key == "fitment_score":
+                st.subheader(f"Fitment Score: {value:.1f}%")
+            elif key == "recommendation":
+                st.subheader("Recommendation")
+                st.write(value)
+            else:
+                st.subheader(key.capitalize())
+                st.write(value)
+    elif isinstance(crew_result, list):
+        for item in crew_result:
+            display_crew_results(item)
+    else:
+        st.write(crew_result)
+
+def process_large_text(text, chunk_size=5000):
+    chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+    
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(executor.map(process_chunk, chunks))
+    
+    return combine_results(results)
+
+def process_chunk(chunk):
+    # Basic NLP processing
+    doc = nlp(chunk)
+    
+    # Extract named entities
+    entities = [(ent.text, ent.label_) for ent in doc.ents]
+    
+    # Extract key phrases (simplified)
+    key_phrases = [token.text for token in doc if token.pos_ in ['NOUN', 'PROPN', 'ADJ']]
+    
+    # Count word frequency
+    word_freq = {}
+    for token in doc:
+        if token.is_alpha and not token.is_stop:
+            word_freq[token.text] = word_freq.get(token.text, 0) + 1
+    
+    return {
+        "text": chunk,
+        "entities": entities,
+        "key_phrases": key_phrases,
+        "word_freq": word_freq
+    }
+
+def combine_results(results):
+    combined = {
+        "text": "",
+        "entities": [],
+        "key_phrases": [],
+        "word_freq": {}
+    }
+    
+    for result in results:
+        combined["text"] += result["text"]
+        combined["entities"].extend(result["entities"])
+        combined["key_phrases"].extend(result["key_phrases"])
+        for word, freq in result["word_freq"].items():
+            combined["word_freq"][word] = combined["word_freq"].get(word, 0) + freq
+    
+    return combined
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
+def make_groq_api_call(messages):
+    try:
+        response = llm(messages)
+        return response
+    except Exception as e:
+        st.error(f"Error in API call: {str(e)}")
+        raise
 
 def main_app():
     st.title("Resume Cupid")
@@ -190,11 +336,16 @@ def main_app():
 
     if submitted and resume_file is not None and len(job_description) > 100:
         try:
-            resume_text = parse_resume(resume_file)
+            resume_data = parse_resume(resume_file)
+            resume_text = resume_data["full_text"]
             
             logging.info(f"Extracted resume text: {resume_text[:1000]}")
 
             resume_first_name = extract_first_name(resume_text)
+
+            if len(resume_text) > 10000 or len(job_description) > 5000:
+                resume_text = process_large_text(resume_text)
+                job_description = process_large_text(job_description)
 
             resume_calibrator = create_resume_calibrator_agent(llm)
             skills_agent = create_skills_agent(llm)
@@ -229,7 +380,15 @@ def main_app():
                     status_text.text("Finalizing the results...")
             
             try:
-                crew_result = crew.kickoff()
+                job = q.enqueue(crew.kickoff)
+                st.write(f"Your job has been submitted. Job ID: {job.id}")
+                st.write("You will be notified when the results are ready.")
+                
+                # Poll for job completion
+                while not job.is_finished:
+                    time.sleep(1)
+                
+                crew_result = job.result
                 logging.info(f"Raw result from crew.kickoff(): {crew_result}")
                 if not crew_result:
                     raise ValueError("Crew.kickoff() returned an empty result")
