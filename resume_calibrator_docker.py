@@ -24,9 +24,6 @@ from fuzzywuzzy import fuzz
 import uuid
 import concurrent.futures
 from tenacity import retry, stop_after_attempt, wait_fixed
-import redis
-from rq import Queue
-from rq.job import Job
 
 # Streamlit UI setup
 st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
@@ -52,11 +49,6 @@ FEEDBACK_FILE = os.getenv("FEEDBACK_FILE")
 if not FEEDBACK_FILE:
     st.error("FEEDBACK_FILE environment variable is not set.")
     st.stop()
-
-# Initialize Redis connection
-redis_conn = redis.Redis()
-# Create a queue
-q = Queue(connection=redis_conn)
 
 # Load feedback data from file
 @st.cache_data
@@ -380,15 +372,7 @@ def main_app():
                     status_text.text("Finalizing the results...")
             
             try:
-                job = q.enqueue(crew.kickoff)
-                st.write(f"Your job has been submitted. Job ID: {job.id}")
-                st.write("You will be notified when the results are ready.")
-                
-                # Poll for job completion
-                while not job.is_finished:
-                    time.sleep(1)
-                
-                crew_result = job.result
+                crew_result = crew.kickoff()
                 logging.info(f"Raw result from crew.kickoff(): {crew_result}")
                 if not crew_result:
                     raise ValueError("Crew.kickoff() returned an empty result")
