@@ -19,7 +19,7 @@ import platform
 import transformers
 import spacy
 from spacy.matcher import PhraseMatcher
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from fuzzywuzzy import fuzz
 import uuid
 import concurrent.futures
@@ -319,25 +319,52 @@ groq_rate_limiter = RateLimiter(max_calls=25, period=60)  # 25 calls per minute 
 @retry(
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=1, min=4, max=10),
-    retry=retry_if_exception_type(Exception)
+    retry=retry_if_exception_type((ValueError, TypeError))
 )
 @groq_rate_limiter
 def make_groq_api_call(messages):
     try:
-        response = llm(messages)
+        # Convert messages to the correct format if necessary
+        formatted_messages = []
+        for msg in messages:
+            if isinstance(msg, str):
+                formatted_messages.append(HumanMessage(content=msg))
+            elif isinstance(msg, dict):
+                if msg.get('role') == 'human':
+                    formatted_messages.append(HumanMessage(content=msg['content']))
+                elif msg.get('role') == 'ai':
+                    formatted_messages.append(AIMessage(content=msg['content']))
+            else:
+                formatted_messages.append(msg)
+        
+        response = llm(formatted_messages)
         return response
+    except ValueError as ve:
+        logging.error(f"ValueError in API call: {str(ve)}")
+        st.error(f"Error in API call: {str(ve)}")
+        raise
+    except TypeError as te:
+        logging.error(f"TypeError in API call: {str(te)}")
+        st.error(f"Error in API call: {str(te)}")
+        raise
     except Exception as e:
         if "rate_limit_exceeded" in str(e):
+            logging.warning("Rate limit reached. Retrying after a short delay...")
             st.warning("Rate limit reached. Retrying after a short delay...")
-            raise  # This will trigger a retry
+            raise
         else:
-            st.error(f"Error in API call: {str(e)}")
+            logging.error(f"Unexpected error in API call: {str(e)}")
+            st.error(f"Unexpected error in API call: {str(e)}")
             raise
 
 # Caching function for API calls
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def cached_api_call(call_hash):
-    return make_groq_api_call(call_hash)
+    try:
+        return make_groq_api_call(call_hash)
+    except Exception as e:
+        logging.error(f"Error in cached_api_call: {str(e)}")
+        raise
 
 def main_app():
     st.title("Resume Cupid")
@@ -413,12 +440,18 @@ def main_app():
                 # Generate a hash for caching
                 input_hash = hashlib.md5(f"{job_description}{resume_text}{role}{str(parameters)}{str(weights)}".encode()).hexdigest()
                 
-                # Try to get cached result
-                crew_result = cached_api_call(input_hash)
+                # Prepare the messages
+                messages = [
+                    {"role": "system", "content": "You are an AI assistant helping with resume evaluation."},
+                    {"role": "human", "content": f"Job Description: {job_description}\n\nResume: {resume_text}\n\nRole: {role}\n\nParameters: {parameters}\n\nWeights: {weights}"}
+                ]
                 
-                logging.info(f"Raw result from crew.kickoff(): {crew_result}")
+                # Try to get cached result
+                crew_result = cached_api_call(messages)
+                
+                logging.info(f"Raw result from API call: {crew_result}")
                 if not crew_result:
-                    raise ValueError("Crew.kickoff() returned an empty result")
+                    raise ValueError("API call returned an empty result")
                 processed_result = process_crew_result(crew_result)
                 logging.info(f"Processed result: {processed_result}")
                 
@@ -439,7 +472,7 @@ def main_app():
                 log_run(input_data, output_data)
                 st.success("Evaluation Complete!")
             except Exception as e:
-                logging.error(f"Error in crew.kickoff(): {e}")
+                logging.error(f"Error in processing: {str(e)}")
                 logging.error(f"Traceback: {traceback.format_exc()}")
                 st.error(f"Error: Unable to process the resume. {str(e)}")
         
