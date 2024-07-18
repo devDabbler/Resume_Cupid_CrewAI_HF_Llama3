@@ -423,38 +423,32 @@ def main_app():
                 else:
                     status_text.text("Finalizing the results...")
             
-            try:
-                crew_result = crew.kickoff()
-                if not crew_result:
-                    raise ValueError("Crew.kickoff() returned an empty result")
-                processed_result = process_crew_result(crew_result)
-                display_crew_results(processed_result)
-                st.success("Evaluation Complete!")
+            crew_result = crew.kickoff()
+            if not crew_result:
+                raise ValueError("Crew.kickoff() returned an empty result")
+            processed_result = process_crew_result(crew_result)
+            display_crew_results(processed_result)
+            st.success("Evaluation Complete!")
 
-                input_data = {
-                    "run_id": run_id,
-                    "job_description": job_description,
-                    "resume": resume_text,
-                    "role": role,
-                    "parameters": parameters,
-                    "weights": weights
-                }
-                output_data = {
-                    "run_id": run_id,
-                    "crew_result": processed_result
-                }
-                
-                log_run(input_data, output_data)
+            input_data = {
+                "run_id": run_id,
+                "job_description": job_description,
+                "resume": resume_text,
+                "role": role,
+                "parameters": parameters,
+                "weights": weights
+            }
+            output_data = {
+                "run_id": run_id,
+                "crew_result": processed_result
+            }
             
-            except Exception as e:
-                logging.error(f"Error in processing: {str(e)}")
-                logging.error(f"Traceback: {traceback.format_exc()}")
-                st.error(f"Error: Unable to process the resume. {str(e)}")
+            log_run(input_data, output_data)
         
         except Exception as e:
-            st.error(f"Failed to process the request: {str(e)}")
-            logging.error(f"Failed to process the request: {str(e)}")
-            logging.exception(e)
+            logging.error(f"Error in processing: {str(e)}")
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            st.error(f"Error: Unable to process the resume. {str(e)}")
     
     else:
         st.write("Awaiting input and file upload...")
