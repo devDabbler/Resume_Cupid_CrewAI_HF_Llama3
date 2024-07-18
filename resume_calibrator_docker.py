@@ -392,31 +392,39 @@ def main_app():
         submitted = st.form_submit_button('Submit')
 
     if submitted and resume_file is not None and len(job_description) > 100:
+        st.write("Debug: Starting resume processing")
+        
         try:
+            st.write("Debug: Parsing resume")
             resume_data = parse_resume(resume_file)
             resume_text = resume_data["full_text"]
             
+            st.write("Debug: Extracted resume text")
             logging.info(f"Extracted resume text: {resume_text[:1000]}")
 
             resume_first_name = extract_first_name(resume_text)
 
+            st.write("Debug: Processing large text")
             if len(resume_text) > 10000 or len(job_description) > 5000:
                 resume_text = process_large_text(resume_text)
                 job_description = process_large_text(job_description)
 
+            st.write("Debug: Creating agents")
             resume_calibrator = create_resume_calibrator_agent(llm)
             skills_agent = create_skills_agent(llm)
             experience_agent = create_experience_agent(llm)
 
+            st.write("Debug: Setting up parameters and weights")
             parameters = user_skills + [f"{min_experience} or more years of experience"]
             weights = calculate_weights(skill_rankings)
-        
             weights = [str(weight) for weight in weights]
 
+            st.write("Debug: Creating tasks")
             calibration_task = create_calibration_task(job_description, resume_text, resume_calibrator, role, parameters)
             skill_evaluation_task = create_skill_evaluation_task(job_description, resume_text, skills_agent, role, weights, user_skills)
             experience_evaluation_task = create_experience_evaluation_task(job_description, resume_text, experience_agent, role)
 
+            st.write("Debug: Setting up crew")
             crew = Crew(
                 agents=[resume_calibrator, skills_agent, experience_agent],
                 tasks=[calibration_task, skill_evaluation_task, experience_evaluation_task],
@@ -437,25 +445,31 @@ def main_app():
                     status_text.text("Finalizing the results...")
             
             try:
+                st.write("Debug: Generating hash for caching")
                 # Generate a hash for caching
                 input_hash = hashlib.md5(f"{job_description}{resume_text}{role}{str(parameters)}{str(weights)}".encode()).hexdigest()
                 
+                st.write("Debug: Preparing messages")
                 # Prepare the messages
                 messages = [
                     {"role": "system", "content": "You are an AI assistant helping with resume evaluation."},
                     {"role": "human", "content": f"Job Description: {job_description}\n\nResume: {resume_text}\n\nRole: {role}\n\nParameters: {parameters}\n\nWeights: {weights}"}
                 ]
                 
+                st.write("Debug: Calling API")
                 # Try to get cached result
                 crew_result = cached_api_call(messages)
                 
+                st.write("Debug: API call completed")
                 logging.info(f"Raw result from API call: {crew_result}")
                 if not crew_result:
                     raise ValueError("API call returned an empty result")
                 processed_result = process_crew_result(crew_result)
                 logging.info(f"Processed result: {processed_result}")
                 
+                st.write("Debug: About to display results")
                 display_crew_results(processed_result)
+                st.write("Debug: Finished displaying results")
 
                 input_data = {
                     "run_id": run_id,
@@ -469,6 +483,7 @@ def main_app():
                     "run_id": run_id,
                     "crew_result": processed_result
                 }
+                st.write("Debug: Logging run")
                 log_run(input_data, output_data)
                 st.success("Evaluation Complete!")
             except Exception as e:
@@ -521,20 +536,21 @@ def log_run(input_data, output_data):
     }
     
     log_file = 'run_logs.json'
-    if os.path.exists(log_file):
-        try:
+    try:
+        if os.path.exists(log_file):
             with open(log_file, "r") as file:
                 logs = json.load(file)
-        except json.JSONDecodeError:
+        else:
             logs = []
-    else:
-        logs = []
 
-    logs.append(log_entry)
-    
-    with open(log_file, "w") as file:
-        json.dump(logs, file, indent=4)
-    logging.info(f"Logged run at {timestamp}")
+        logs.append(log_entry)
+        
+        with open(log_file, "w") as file:
+            json.dump(logs, file, indent=4)
+        logging.info(f"Logged run at {timestamp}")
+    except Exception as e:
+        logging.error(f"Error in log_run: {str(e)}")
+        st.error(f"Error in logging run: {str(e)}")
 
 if __name__ == "__main__":
     if "logged_in" not in st.session_state:
