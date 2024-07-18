@@ -139,7 +139,7 @@ def login():
         .reportview-container .main .block-container {
             max-width: 1000px;
             padding-top: 1rem;
-            padding-bottom: 1rem;
+            padding-bottom: 1rem.
         }
         .auth-form {
             width: 100%;
@@ -148,24 +148,24 @@ def login():
             padding: 1rem;
             background-color: #f8f9fa;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1).
         }
         .stTextInput > div > div > input {
             background-color: white;
             padding: 0.5rem;
-            border: 1px solid #adb5bd;
+            border: 1px solid #adb5bd.
         }
         .stButton > button {
-            width: 100%;
+            width: 100%.
         }
         .footer-text {
             text-align: center;
             width: 100%;
             max-width: 800px;
-            margin: 1rem auto;
+            margin: 1rem auto.
         }
         h3 {
-            margin-bottom: 1rem !important;
+            margin-bottom: 1rem !important.
         }
         </style>
     """, unsafe_allow_html=True)
