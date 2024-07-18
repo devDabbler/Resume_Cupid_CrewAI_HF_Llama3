@@ -23,7 +23,9 @@ from langchain_core.messages import HumanMessage
 from fuzzywuzzy import fuzz
 import uuid
 import concurrent.futures
-from tenacity import retry, stop_after_attempt, wait_fixed
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import hashlib
+from threading import Lock
 
 # Streamlit UI setup
 st.set_page_config(page_title='📝 Resume Cupid', page_icon="📝")
@@ -292,14 +294,50 @@ def combine_results(results):
     
     return combined
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
+class RateLimiter:
+    def __init__(self, max_calls, period):
+        self.max_calls = max_calls
+        self.period = period
+        self.calls = []
+        self.lock = Lock()
+
+    def __call__(self, f):
+        def wrapped(*args, **kwargs):
+            with self.lock:
+                now = time.time()
+                self.calls = [c for c in self.calls if c > now - self.period]
+                if len(self.calls) >= self.max_calls:
+                    sleep_time = self.calls[0] - (now - self.period)
+                    time.sleep(sleep_time)
+                self.calls.append(time.time())
+            return f(*args, **kwargs)
+        return wrapped
+
+# Create a rate limiter instance
+groq_rate_limiter = RateLimiter(max_calls=25, period=60)  # 25 calls per minute to be safe
+
+@retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=1, min=4, max=10),
+    retry=retry_if_exception_type(Exception)
+)
+@groq_rate_limiter
 def make_groq_api_call(messages):
     try:
         response = llm(messages)
         return response
     except Exception as e:
-        st.error(f"Error in API call: {str(e)}")
-        raise
+        if "rate_limit_exceeded" in str(e):
+            st.warning("Rate limit reached. Retrying after a short delay...")
+            raise  # This will trigger a retry
+        else:
+            st.error(f"Error in API call: {str(e)}")
+            raise
+
+# Caching function for API calls
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def cached_api_call(call_hash):
+    return make_groq_api_call(call_hash)
 
 def main_app():
     st.title("Resume Cupid")
@@ -372,7 +410,12 @@ def main_app():
                     status_text.text("Finalizing the results...")
             
             try:
-                crew_result = crew.kickoff()
+                # Generate a hash for caching
+                input_hash = hashlib.md5(f"{job_description}{resume_text}{role}{str(parameters)}{str(weights)}".encode()).hexdigest()
+                
+                # Try to get cached result
+                crew_result = cached_api_call(input_hash)
+                
                 logging.info(f"Raw result from crew.kickoff(): {crew_result}")
                 if not crew_result:
                     raise ValueError("Crew.kickoff() returned an empty result")
