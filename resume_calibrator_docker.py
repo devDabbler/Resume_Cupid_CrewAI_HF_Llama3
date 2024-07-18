@@ -51,7 +51,7 @@ if not FEEDBACK_FILE:
     st.stop()
 
 # Load feedback data from file
-@st.cache
+@st.cache_data
 def load_feedback_data():
     if os.path.exists(FEEDBACK_FILE):
         try:
@@ -222,20 +222,6 @@ def parse_unstructured_result(content):
             result[current_section] += '\n' + section.strip()
     return result
 
-def get_recommendation(fitment_score):
-    if fitment_score >= 85:
-        return "This candidate is an exceptional fit and should be strongly considered for an interview."
-    elif fitment_score >= 75:
-        return "This candidate is a strong fit and should be considered for an interview."
-    elif fitment_score >= 65:
-        return "This candidate shows promise but may need additional evaluation in some areas."
-    elif fitment_score >= 55:
-        return "This candidate meets some requirements but has significant gaps. Consider for a more junior role or different position."
-    elif fitment_score >= 45:
-        return "This candidate has relevant experience but may not be suitable for this specific role. Consider for other positions within the organization."
-    else:
-        return "This candidate does not meet most of the key requirements. Not recommended for this position."
-
 def display_crew_results(crew_result):
     if isinstance(crew_result, str):
         crew_result = process_crew_result(crew_result)
@@ -360,7 +346,7 @@ def make_groq_api_call(messages):
         raise
 
 # Caching function for API calls
-@st.cache(ttl=3600)  # Cache for 1 hour
+@st.cache_data(ttl=3600)  # Cache for 1 hour
 def cached_api_call(call_hash):
     try:
         return make_groq_api_call(call_hash)
@@ -394,39 +380,30 @@ def main_app():
         submitted = st.form_submit_button('Submit')
 
     if submitted and resume_file is not None and len(job_description) > 100:
-        st.write("Debug: Starting resume processing")
-        
         try:
-            st.write("Debug: Parsing resume")
             resume_data = parse_resume(resume_file)
             resume_text = resume_data["full_text"]
             
-            st.write("Debug: Extracted resume text")
             logging.info(f"Extracted resume text: {resume_text[:1000]}")
 
             resume_first_name = extract_first_name(resume_text)
 
-            st.write("Debug: Processing large text")
             if len(resume_text) > 10000 or len(job_description) > 5000:
                 resume_text = process_large_text(resume_text)
                 job_description = process_large_text(job_description)
 
-            st.write("Debug: Creating agents")
             resume_calibrator = create_resume_calibrator_agent(llm)
             skills_agent = create_skills_agent(llm)
             experience_agent = create_experience_agent(llm)
 
-            st.write("Debug: Setting up parameters and weights")
             parameters = user_skills + [f"{min_experience} or more years of experience"]
             weights = calculate_weights(skill_rankings)
             weights = [str(weight) for weight in weights]
 
-            st.write("Debug: Creating tasks")
             calibration_task = create_calibration_task(job_description, resume_text, resume_calibrator, role, parameters)
             skill_evaluation_task = create_skill_evaluation_task(job_description, resume_text, skills_agent, role, weights, user_skills)
             experience_evaluation_task = create_experience_evaluation_task(job_description, resume_text, experience_agent, role)
 
-            st.write("Debug: Setting up crew")
             crew = Crew(
                 agents=[resume_calibrator, skills_agent, experience_agent],
                 tasks=[calibration_task, skill_evaluation_task, experience_evaluation_task],
