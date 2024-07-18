@@ -201,10 +201,12 @@ def calculate_weights(rankings):
     return [rank / total for rank in rankings]
 
 def process_crew_result(result):
-    if isinstance(result, list):
-        return "\n\n".join(str(item) for item in result)
-    elif isinstance(result, dict):
-        return "\n\n".join(f"**{key}:** {value}" for key, value in result.items())
+    if hasattr(result, 'content'):
+        return result.content
+    elif isinstance(result, dict) and 'content' in result:
+        return result['content']
+    elif isinstance(result, str):
+        return result
     else:
         return str(result)
 
@@ -229,6 +231,31 @@ def display_crew_results(crew_result):
         except json.JSONDecodeError:
             st.write(crew_result)
             return
+    
+    if hasattr(crew_result, 'content'):
+        content = crew_result.content
+    elif isinstance(crew_result, dict) and 'content' in crew_result:
+        content = crew_result['content']
+    else:
+        content = str(crew_result)
+
+    # Split the content into sections
+    sections = content.split('\n\n')
+    
+    for section in sections:
+        if "Total Score:" in section:
+            st.subheader("Overall Evaluation")
+            st.write(section)
+        elif ":" in section:
+            title, details = section.split(':', 1)
+            st.subheader(title.strip())
+            st.write(details.strip())
+        else:
+            st.write(section)
+
+    if hasattr(crew_result, 'response_metadata'):
+        st.subheader("Response Metadata")
+        st.json(crew_result.response_metadata)
     
     if isinstance(crew_result, dict):
         for key, value in crew_result.items():
