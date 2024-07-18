@@ -201,10 +201,10 @@ def calculate_weights(rankings):
     return [rank / total for rank in rankings]
 
 def process_crew_result(result):
-    if hasattr(result, 'content'):
+    if isinstance(result, dict):
+        return json.dumps(result)
+    elif hasattr(result, 'content'):
         return result.content
-    elif isinstance(result, dict) and 'content' in result:
-        return result['content']
     elif isinstance(result, str):
         return result
     else:
@@ -225,12 +225,47 @@ def get_recommendation(fitment_score):
         return "This candidate does not meet most of the key requirements. Not recommended for this position."
 
 def display_crew_results(crew_result):
-    if isinstance(crew_result, str):
-        try:
-            crew_result = json.loads(crew_result)
-        except json.JSONDecodeError:
-            st.write(crew_result)
-            return
+    content = process_crew_result(crew_result)
+    
+    # Try to parse the content as JSON
+    try:
+        result_dict = json.loads(content)
+    except json.JSONDecodeError:
+        result_dict = None
+
+    if isinstance(result_dict, dict):
+        # If it's a dictionary, display each section
+        if 'fitment_score' in result_dict:
+            st.subheader(f"Fitment Score: {result_dict['fitment_score']:.1f}%")
+        
+        if 'recommendation' in result_dict:
+            st.subheader("Interview Recommendation")
+            st.write(result_dict['recommendation'])
+        
+        for key in ['fitment', 'relevant_experience', 'gaps', 'areas_to_improve']:
+            if key in result_dict:
+                st.subheader(key.replace('_', ' ').title())
+                st.write(result_dict[key])
+    else:
+        # If it's not a dictionary, try to parse sections from the text
+        sections = content.split('\n\n')
+        for section in sections:
+            if section.startswith('Fitment Score:'):
+                score = float(section.split(':')[1].strip().rstrip('%'))
+                st.subheader(f"Fitment Score: {score:.1f}%")
+            elif section.startswith('Interview Recommendation:'):
+                st.subheader("Interview Recommendation")
+                st.write(section.split(':', 1)[1].strip())
+            elif ':' in section:
+                title, content = section.split(':', 1)
+                st.subheader(title.strip())
+                st.write(content.strip())
+            else:
+                st.write(section)
+
+    if hasattr(crew_result, 'response_metadata'):
+        st.subheader("Response Metadata")
+        st.json(crew_result.response_metadata)
     
     if hasattr(crew_result, 'content'):
         content = crew_result.content
@@ -365,24 +400,17 @@ def make_groq_api_call(messages):
                 formatted_messages.append(msg)
         
         response = llm(formatted_messages)
-        return response
-    except ValueError as ve:
-        logging.error(f"ValueError in API call: {str(ve)}")
-        st.error(f"Error in API call: {str(ve)}")
-        raise
-    except TypeError as te:
-        logging.error(f"TypeError in API call: {str(te)}")
-        st.error(f"Error in API call: {str(te)}")
-        raise
+        
+        # Try to parse the response as JSON
+        try:
+            result = json.loads(response.content)
+        except json.JSONDecodeError:
+            result = response.content
+
+        return result
     except Exception as e:
-        if "rate_limit_exceeded" in str(e):
-            logging.warning("Rate limit reached. Retrying after a short delay...")
-            st.warning("Rate limit reached. Retrying after a short delay...")
-            raise
-        else:
-            logging.error(f"Unexpected error in API call: {str(e)}")
-            st.error(f"Unexpected error in API call: {str(e)}")
-            raise
+        logging.error(f"Error in API call: {str(e)}")
+        raise
 
 # Caching function for API calls
 @st.cache_data(ttl=3600)  # Cache for 1 hour
