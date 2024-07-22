@@ -30,7 +30,17 @@ from utils import (
 
 # Configure logging
 log_file = 'resume_calibrator.log'
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[logging.FileHandler(log_file), logging.StreamHandler()])
+logging.basicConfig(
+    level=logging.INFO,  # Set to INFO to avoid debug messages
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Initialize the Hugging Face NER pipeline
 skills_extractor = pipeline("ner", model="dslim/bert-base-NER")
@@ -272,9 +282,16 @@ def perform_evaluation(job_description, resume_text, role, user_skills, min_expe
             tasks=[calibration_task, skill_evaluation_task, experience_evaluation_task],
             verbose=False  # Ensure verbose is set to False to avoid debug messages
         )
+
+        logger.info("Before Crew.kickoff()")
         results = crew.kickoff()
+        logger.info("After Crew.kickoff()")
 
         # Process results
+        if not results:
+            logger.error("Crew.kickoff() returned an empty result")
+            raise ValueError("Crew.kickoff() returned an empty result")
+
         if results and len(results) >= 3:
             calibration_result = results[0]
             skill_evaluation = results[1]
@@ -285,7 +302,7 @@ def perform_evaluation(job_description, resume_text, role, user_skills, min_expe
         return experience_evaluation
 
     except Exception as e:
-        logging.error(f"Error in perform_evaluation: {str(e)}")
+        logger.error(f"Error in perform_evaluation: {str(e)}")
         st.error(f"An error occurred during evaluation: {str(e)}")
         return {
             "experience_fitment_score": 0,
@@ -297,7 +314,7 @@ def perform_evaluation(job_description, resume_text, role, user_skills, min_expe
             "concluding_statement": "An error occurred during the evaluation process."
         }
 
-# Login form
+# Replace st.experimental_rerun() with st.rerun()
 def login():
     st.markdown("""
         <style>
@@ -352,7 +369,7 @@ def login():
                 if username == LOGIN_USERNAME and password == LOGIN_PASSWORD:
                     st.session_state["logged_in"] = True
                     st.success("Login successful! Redirecting...")
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.error("Invalid username or password")
         st.markdown('</div>', unsafe_allow_html=True)
@@ -458,7 +475,7 @@ def main_app():
 
                     except Exception as e:
                         st.error(f"An error occurred during evaluation: {str(e)}")
-                        logging.error(f"Error in main_app: {str(e)}")
+                        logger.error(f"Error in main_app: {str(e)}")
 
 if __name__ == "__main__":
     if "logged_in" not in st.session_state:
