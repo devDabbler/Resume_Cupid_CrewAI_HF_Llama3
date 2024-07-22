@@ -31,7 +31,7 @@ from utils import (
 # Configure logging
 log_file = 'resume_calibrator.log'
 logging.basicConfig(
-    level=logging.INFO,  # Set to INFO to avoid debug messages
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler(log_file),
@@ -71,7 +71,7 @@ def load_feedback_data():
                 if content:
                     return json.loads(content)
         except json.JSONDecodeError:
-            logging.error("Error decoding JSON from feedback data file.")
+            logger.error("Error decoding JSON from feedback data file.")
     return []
 
 feedback_data = load_feedback_data()
@@ -82,7 +82,7 @@ def save_feedback_data(feedback_data):
         with open(FEEDBACK_FILE, "w") as file:
             json.dump(feedback_data, file, indent=4)
     except IOError:
-        logging.error("Error saving feedback data to file.")
+        logger.error("Error saving feedback data to file.")
 
 # Function to extract first name from resume text
 def extract_first_name(resume_text):
@@ -99,7 +99,7 @@ def parse_pdf(file):
             text += page.extract_text() + "\n"
         return text
     except Exception as e:
-        logging.error(f"Error parsing PDF: {str(e)}")
+        logger.error(f"Error parsing PDF: {str(e)}")
         return ""
 
 def parse_docx(file):
@@ -110,7 +110,7 @@ def parse_docx(file):
             text += para.text + "\n"
         return text
     except Exception as e:
-        logging.error(f"Error parsing DOCX: {str(e)}")
+        logger.error(f"Error parsing DOCX: {str(e)}")
         return ""
 
 def parse_resume(file):
@@ -122,7 +122,7 @@ def parse_resume(file):
         else:
             raise ValueError("Unsupported file format")
     except Exception as e:
-        logging.error(f"Error parsing resume: {str(e)}")
+        logger.error(f"Error parsing resume: {str(e)}")
         return ""
 
 def extract_skills(resume_text):
@@ -131,7 +131,7 @@ def extract_skills(resume_text):
         skills = [entity['word'] for entity in entities if entity['entity'] in ['B-SKILL', 'I-SKILL']]
         return list(set(skills))
     except Exception as e:
-        logging.error(f"Error extracting skills: {str(e)}")
+        logger.error(f"Error extracting skills: {str(e)}")
         return []
 
 class RateLimiter:
@@ -163,7 +163,7 @@ def make_groq_api_call(messages):
         response = llm(messages)
         return response
     except Exception as e:
-        logging.error(f"Error making Groq API call: {str(e)}")
+        logger.error(f"Error making Groq API call: {str(e)}")
         raise
 
 @st.cache_data(ttl=3600)
@@ -171,7 +171,7 @@ def cached_api_call(call_hash):
     try:
         return make_groq_api_call(call_hash)
     except Exception as e:
-        logging.error(f"Error in cached_api_call: {str(e)}")
+        logger.error(f"Error in cached_api_call: {str(e)}")
         raise
 
 def extract_education_section(resume_text):
@@ -251,6 +251,10 @@ def perform_evaluation(job_description, resume_text, role, user_skills, min_expe
         skills_section = extract_skills_section(resume_text, skills_keywords)
         experience_section = extract_experience_section(resume_text)
 
+        # Log the extracted sections
+        logger.info(f"Extracted Skills Section: {skills_section}")
+        logger.info(f"Extracted Experience Section: {experience_section}")
+
         # Create tasks
         calibration_task = create_calibration_task(
             job_description=job_description,
@@ -276,6 +280,11 @@ def perform_evaluation(job_description, resume_text, role, user_skills, min_expe
             role=role
         )
 
+        # Log the created tasks
+        logger.info(f"Calibration Task: {calibration_task}")
+        logger.info(f"Skill Evaluation Task: {skill_evaluation_task}")
+        logger.info(f"Experience Evaluation Task: {experience_evaluation_task}")
+
         # Create and kickoff crew
         crew = Crew(
             agents=[resume_calibrator, skills_agent, experience_agent],
@@ -286,6 +295,7 @@ def perform_evaluation(job_description, resume_text, role, user_skills, min_expe
         logger.info("Before Crew.kickoff()")
         results = crew.kickoff()
         logger.info("After Crew.kickoff()")
+        logger.info(f"Raw crew result: {results}")
 
         # Process results
         if not results:
