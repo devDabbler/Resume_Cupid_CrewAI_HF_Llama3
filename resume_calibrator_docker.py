@@ -297,4 +297,7 @@ if __name__ == "__main__":
         login()
     else:
         main_app()
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
