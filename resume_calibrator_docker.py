@@ -280,6 +280,7 @@ def app():
         asyncio.run(main_app())
 
 if __name__ == "__main__":
+<<<<<<< Updated upstream
     try:
         app()
     except Exception as e:
@@ -288,3 +289,12 @@ if __name__ == "__main__":
         st.expander("Debug Information").code(traceback.format_exc())
     finally:
         logger.info("Application session ended")
+=======
+    if "logged_in" not in st.session_state:
+        st.session_state["logged_in"] = False
+
+    if not st.session_state["logged_in"]:
+        login()
+    else:
+        main_app()
+>>>>>>> Stashed changes
