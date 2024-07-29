@@ -1,0 +1,342 @@
+data_scientist:
+  skills:
+    - python
+    - r
+    - sql
+    - machine learning
+    - deep learning
+    - statistics
+    - data visualization
+    - big data
+    - tensorflow
+    - pytorch
+    - scikit-learn
+  experience_keywords:
+    - data scientist
+    - machine learning engineer
+    - data analyst
+    - statistician
+  project_keywords:
+    - machine learning model
+    - predictive analytics
+    - data pipeline
+    - statistical analysis
+    - big data processing
+
+software_engineer:
+  skills:
+    - java
+    - python
+    - c++
+    - javascript
+    - go
+    - rust
+    - react
+    - angular
+    - node.js
+    - docker
+    - kubernetes
+    - aws
+    - azure
+    - microservices
+  experience_keywords:
+    - software engineer
+    - software developer
+    - full stack developer
+    - backend engineer
+    - frontend engineer
+  project_keywords:
+    - software architecture
+    - scalable systems
+    - api development
+    - database design
+    - cloud infrastructure
+
+ui_designer:
+  skills:
+    - ui design
+    - ux design
+    - figma
+    - sketch
+    - adobe xd
+    - invision
+    - prototyping
+    - wireframing
+    - user research
+    - typography
+    - color theory
+  experience_keywords:
+    - ui designer
+    - ux designer
+    - product designer
+    - interaction designer
+  project_keywords:
+    - user interface
+    - user experience
+    - design system
+    - responsive design
+    - mobile app design
+    - web design
+
+full_stack_engineer:
+  skills:
+    - javascript
+    - python
+    - java
+    - react
+    - angular
+    - vue.js
+    - node.js
+    - express.js
+    - django
+    - flask
+    - sql
+    - nosql
+    - rest api
+    - graphql
+  experience_keywords:
+    - full stack engineer
+    - full stack developer
+    - software engineer
+    - web developer
+  project_keywords:
+    - full stack application
+    - web application
+    - database design
+    - api development
+    - frontend development
+    - backend development
+
+solutions_architect_cpg:
+  skills:
+    - cloud computing
+    - web services
+    - backend integration
+    - aws
+    - azure
+    - google cloud
+    - software architecture
+    - technical specifications
+    - solution design
+    - integration
+  experience_keywords:
+    - solutions architect
+    - pre-sales
+    - client-facing
+    - consulting
+    - cpg industry
+  project_keywords:
+    - solution design
+    - technical specifications
+    - integration
+    - cloud services
+    - software architecture
+
+azure_platform_architect:
+  skills:
+    - azure
+    - devops
+    - cloud security
+    - ci/cd
+    - terraform
+    - docker
+    - kubernetes
+    - unix
+    - linux
+    - shell scripting
+  experience_keywords:
+    - azure architect
+    - devops engineer
+    - cloud engineer
+    - cloud architect
+  project_keywords:
+    - cloud architecture
+    - devops
+    - cloud security
+    - ci/cd pipelines
+    - cloud optimization
+
+project_manager:
+  skills:
+    - project management
+    - agile methodology
+    - risk management
+    - communication management
+    - performance management
+    - client communication
+    - analytics
+    - sql
+    - cloud
+  experience_keywords:
+    - project manager
+    - program manager
+    - project delivery
+    - client engagement
+  project_keywords:
+    - project planning
+    - scheduling
+    - risk management
+    - quality management
+    - communication management
+
+account_manager:
+  skills:
+    - business development
+    - client relationship management
+    - consultative sales
+    - cpg industry
+    - ai
+    - analytics
+    - cloud technology
+    - data engineering
+  experience_keywords:
+    - account manager
+    - business development manager
+    - client relationship manager
+    - sales consultant
+  project_keywords:
+    - business development
+    - client engagement
+    - sales campaigns
+    - consultative sales
+    - client relationship management
+
+software_development_engineer:
+  skills:
+    - javascript
+    - python
+    - etl
+    - pandas
+    - numpy
+    - shell scripting
+    - cron job scheduling
+    - git
+    - cloud computing
+    - sql
+    - nosql
+  experience_keywords:
+    - software development engineer
+    - full stack developer
+    - ai engineer
+    - data engineer
+  project_keywords:
+    - ai applications
+    - data integration
+    - etl processes
+    - cloud deployment
+    - performance optimization
+
+cloud_engineer:
+  skills:
+    - aws
+    - cloud architecture
+    - network security
+    - ci/cd
+    - terraform
+    - docker
+    - kubernetes
+    - python
+    - sql
+    - devops
+  experience_keywords:
+    - cloud engineer
+    - platform engineer
+    - devops engineer
+    - cloud architect
+  project_keywords:
+    - cloud infrastructure
+    - devops
+    - cloud security
+    - ci/cd pipelines
+    - cloud optimization
+
+ai_solutions_manager:
+  skills:
+    - ai
+    - machine learning
+    - data science
+    - cloud computing
+    - product management
+    - business development
+    - client engagement
+    - sales
+  experience_keywords:
+    - ai solutions manager
+    - ai sales consultant
+    - product manager
+    - business development manager
+  project_keywords:
+    - ai applications
+    - machine learning solutions
+    - client engagement
+    - sales campaigns
+    - product development
+
+machine_learning_engineer:
+  skills:
+    - machine learning
+    - python
+    - pyspark
+    - mlops
+    - azure
+    - data factory
+    - data lake storage
+    - event hub
+    - databricks
+    - mlflow
+  experience_keywords:
+    - machine learning engineer
+    - ai engineer
+    - data scientist
+    - cloud engineer
+  project_keywords:
+    - machine learning models
+    - mlops pipelines
+    - cloud deployment
+    - data integration
+    - performance optimization
+
+senior_retail_consultant:
+  skills:
+    - marketing mix modelling
+    - multi-touch attribution
+    - unified marketing measurement
+    - retail media analytics
+    - data aggregation
+    - python
+    - sql
+    - databricks
+    - powerbi
+  experience_keywords:
+    - retail consultant
+    - marketing analytics consultant
+    - data scientist
+    - marketing analyst
+  project_keywords:
+    - marketing analytics
+    - retail media
+    - data aggregation
+    - marketing performance
+    - client communication
+
+engagement_manager:
+  skills:
+    - client relationship management
+    - project management
+    - marketing analytics
+    - sales analytics
+    - supply chain analytics
+    - data science
+    - ai
+    - machine learning
+  experience_keywords:
+    - engagement manager
+    - client relationship manager
+    - project manager
+    - analytics consultant
+  project_keywords:
+    - client engagement
+    - project delivery
+    - analytics solutions
+    - marketing analytics
+    - sales analytics
