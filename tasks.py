@@ -1,123 +1,80 @@
+import json
 from crewai import Task
-import logging
+from typing import List, Any
 
-logger = logging.getLogger(__name__)
-
-def create_calibration_task(job_description, resume, resume_calibrator, role, parameters):
+def create_calibration_task(job_description: str, resume: str, resume_calibrator: Any, role: str, parameters: List[str]) -> Task:
     return Task(
         description=f"""
         Evaluate the fitment of the provided resume against the job requirements for the role of {role}.
         Use fuzzy matching to compare skills.
-        Provide a detailed evaluation report with the following structure:
+        Provide a detailed evaluation report in the following JSON structure:
 
         {{
             "fitment_score": [Score as a percentage between 0 and 100],
             "interview_recommendation": "[Clear recommendation on whether to interview the candidate]",
             "fitment": "[Detailed analysis of how well the candidate fits the role]",
-            "relevant_experience": "[List of relevant experiences with brief explanations]",
-            "gaps": "[Identify specific gaps in the candidate's profile relative to the job requirements]",
-            "areas_to_improve": "[Suggest concrete areas where the candidate should focus on improving]"
+            "relevant_experience": ["[List of relevant experiences]"],
+            "gaps": ["[List of identified gaps in the candidate's profile]"],
+            "areas_to_improve": ["[List of areas where the candidate should focus on improving]"]
         }}
 
         Use the given parameters and job description to inform your evaluation.
         Parameters: {parameters}
-        Job Description: {job_description[:100]}...
-        Resume: {resume[:100]}...
+        Job Description: {job_description[:500]}...
+        Resume: {resume[:500]}...
 
         Ensure that your evaluation is specific to this candidate and role. Avoid generic assessments.
-        Your response should be a valid JSON object.
+        Your response must be a valid JSON object.
         """,
         agent=resume_calibrator,
         expected_output="A JSON object containing the evaluation report with fitment score, interview recommendation, and detailed analysis."
     )
 
-def create_skill_evaluation_task(job_description, resume_skills, skills_agent, role, weights, required_skills):
-    individual_skill_analysis = ' '.join([
-        f'''
-        - {skill} (Weight: {weight:.2f}):
-          a) Proficiency level (Beginner/Intermediate/Advanced/Expert)
-          b) Evidence from resume
-          c) Alignment with job requirements
-          d) Score (0-10)
-          e) Relevance to the role (0-10)
-        ''' for skill, weight in zip(required_skills, weights)
-    ])
-
+def create_skill_evaluation_task(job_description: str, resume: str, skills_agent: Any, role: str, weights: List[float], skills: List[str]) -> Task:
     return Task(
         description=f"""
-        Evaluate the candidate's skills for the {role} role based on the job description and resume.
-        Provide a detailed evaluation report in the following JSON structure:
+        Evaluate the candidate's skills based on the job requirements for the role of {role}.
+        Provide a detailed skill evaluation report in the following JSON structure:
 
         {{
-            "overall_skill_assessment": {{
-                "summary": "[Summary of the candidate's skill set]",
-                "overall_skill_score": [Score between 0 and 100]
-            }},
-            "individual_skill_analysis": [
+            "skill_match_score": [Score as a percentage between 0 and 100],
+            "matched_skills": [
                 {{
-                    "skill": "[Skill name]",
-                    "proficiency_level": "[Beginner/Intermediate/Advanced/Expert]",
-                    "evidence": "[Evidence from resume]",
-                    "alignment": "[Alignment with job requirements]",
-                    "score": [Score between 0 and 10],
-                    "relevance": [Score between 0 and 10]
+                    "skill": "[Matched skill]",
+                    "relevance": [Score between 0 and 10],
+                    "description": "[Brief description of how this skill matches the job requirements]"
                 }},
                 ...
             ],
-            "skill_gaps": [
+            "missing_skills": [
                 {{
-                    "gap": "[Description of the skill gap]",
-                    "severity": [Score between 0 and 10],
-                    "improvement_suggestion": "[Suggestion for improvement]"
+                    "skill": "[Missing skill]",
+                    "importance": [Score between 0 and 10],
+                    "suggestion": "[Suggestion for acquiring or improving this skill]"
                 }},
                 ...
             ],
-            "skill_relevance": [
-                {{
-                    "skill": "[Skill name]",
-                    "relevance_score": [Score between 0 and 10],
-                    "explanation": "[Explanation of relevance]"
-                }},
-                ...
-            ],
-            "skill_application": [
-                {{
-                    "skill": "[Skill name]",
-                    "application_example": "[Example of skill application]",
-                    "application_score": [Score between 0 and 10]
-                }},
-                ...
-            ],
-            "role_performance_impact": {{
-                "contribution": "[Explanation of how skills contribute to success]",
-                "limitations": "[Potential limitations based on current skill levels]",
-                "overall_impact_score": [Score between 0 and 10]
-            }},
-            "recommendations": [
-                {{
-                    "recommendation": "[Recommendation for additional training or experience]",
-                    "priority": "[High/Medium/Low]"
-                }},
-                ...
-            ]
+            "overall_skill_assessment": "[Brief overall assessment of the candidate's skill set]"
         }}
 
         Use the following information to inform your evaluation:
-        Job Requirements: {job_description[:100]}...
-        Resume Skills: {resume_skills[:100]}...
+        Job Description: {job_description[:500]}...
+        Resume: {resume[:500]}...
+        Target Skills: {skills}
+        Skill Weights: {weights}
 
-        Note: Be objective and avoid overstating the candidate's qualifications.
-        Ensure your response is a valid JSON object.
+        Ensure that your evaluation takes into account the relative importance of each skill as indicated by the weights.
+        Your response must be a valid JSON object.
         """,
         agent=skills_agent,
-        expected_output="A JSON object containing a detailed skill evaluation report including overall assessment, individual skill analysis, and recommendations."
+        expected_output="A JSON object containing the skill evaluation report with skill match score, matched skills, missing skills, and overall assessment."
     )
 
-def create_experience_evaluation_task(job_description, resume_text, experience_agent, role):
+def create_experience_evaluation_task(job_description: str, resume: str, experience_agent: Any, role: str) -> Task:
     return Task(
         description=f"""
         Evaluate the candidate's work experience and history based on the job requirements for the role of {role}.
-        Provide a detailed evaluation report with the following structure:
+        Provide a detailed evaluation report in the following JSON structure:
 
         {{
             "experience_fitment_score": [Score as a number between 0 and 100],
@@ -130,13 +87,6 @@ def create_experience_evaluation_task(job_description, resume_text, experience_a
                 }},
                 ...
             ],
-            "irrelevant_experience": [
-                {{
-                    "experience": "[Irrelevant experience]",
-                    "explanation": "[Explanation of why it doesn't apply]"
-                }},
-                ...
-            ],
             "gaps": [
                 {{
                     "gap": "[Description of the gap]",
@@ -144,21 +94,6 @@ def create_experience_evaluation_task(job_description, resume_text, experience_a
                 }},
                 ...
             ],
-            "depth_of_experience": [
-                {{
-                    "area": "[Key area related to the role]",
-                    "depth_score": [Score between 0 and 10]
-                }},
-                ...
-            ],
-            "industry_relevance": {{
-                "relevance_score": [Score between 0 and 10],
-                "explanation": "[Explanation of industry relevance]"
-            }},
-            "career_progression": {{
-                "progression_score": [Score between 0 and 10],
-                "analysis": "[Analysis of career progression and growth]"
-            }},
             "areas_of_improvement": [
                 {{
                     "area": "[Area to improve]",
@@ -177,11 +112,9 @@ def create_experience_evaluation_task(job_description, resume_text, experience_a
         4. Achievements and impact in previous roles
         5. Progression and growth in career
 
-        Justify your score with specific examples from the resume.
-
         Use the following information to inform your evaluation:
-        Job Requirements: {job_description[:100]}...
-        Resume Experience: {resume_text[:100]}...
+        Job Requirements: {job_description[:500]}...
+        Resume: {resume[:500]}...
 
         Remember, your evaluation should be unique to this specific candidate and role. Avoid generic assessments.
         Ensure your response is a valid JSON object.
@@ -190,4 +123,49 @@ def create_experience_evaluation_task(job_description, resume_text, experience_a
         expected_output="A JSON object containing a comprehensive experience evaluation report including fitment score, relevant experiences, gaps, and recommendations."
     )
 
-logger.info("tasks.py module loaded")
+def create_project_complexity_evaluation_task(job_description: str, resume: str, project_complexity_agent: Any, role: str) -> Task:
+    return Task(
+        description=f"""
+        Evaluate the complexity and scale of projects the candidate has worked on, based on the job requirements for the role of {role}.
+        Provide a detailed project complexity evaluation report in the following JSON structure:
+
+        {{
+            "project_complexity_score": [Score as a number between 0 and 100],
+            "overall_assessment": "[Brief overall assessment of project complexity experience]",
+            "complex_projects": [
+                {{
+                    "project": "[Brief description of complex project]",
+                    "complexity_factors": ["[List of factors that make this project complex]"],
+                    "relevance_to_role": [Score between 0 and 10],
+                    "impact": "[Brief description of the project's impact or outcome]"
+                }},
+                ...
+            ],
+            "areas_for_growth": [
+                {{
+                    "area": "[Area where candidate could gain more complex project experience]",
+                    "importance": "[High/Medium/Low]",
+                    "suggestion": "[Suggestion for how to gain this experience]"
+                }},
+                ...
+            ],
+            "concluding_statement": "[Concluding statement about the candidate's ability to handle complex projects]"
+        }}
+
+        Consider the following factors when evaluating project complexity:
+        1. Scale of the projects (e.g., team size, budget, duration)
+        2. Technical challenges involved
+        3. Cross-functional collaboration required
+        4. Impact on the organization or industry
+        5. Use of advanced technologies or methodologies
+
+        Use the following information to inform your evaluation:
+        Job Requirements: {job_description[:500]}...
+        Resume: {resume[:500]}...
+
+        Ensure your evaluation is specific to this candidate and the requirements of the role. 
+        Your response must be a valid JSON object.
+        """,
+        agent=project_complexity_agent,
+        expected_output="A JSON object containing a comprehensive project complexity evaluation report including complexity score, assessment of complex projects, and areas for growth."
+    )
