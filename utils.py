@@ -10,7 +10,6 @@ from docx import Document
 import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from io import BytesIO
@@ -32,7 +31,6 @@ def load_job_roles():
 JOB_ROLES = load_job_roles()
 
 def load_job_role_config(role: str) -> Dict[str, Any]:
-    """Load job role configuration."""
     if role not in JOB_ROLES:
         raise ValueError(f"Unsupported job role: {role}")
     return JOB_ROLES[role]
@@ -42,7 +40,7 @@ def extract_skills_nlp(text: str) -> Set[str]:
     
     skills = set()
     for chunk in doc.noun_chunks:
-        if len(chunk.text.split()) <= 3 and len(chunk.text) > 2:  # Limit to phrases of 3 words or less, minimum 3 characters
+        if len(chunk.text.split()) <= 3 and len(chunk.text) > 2:
             skills.add(chunk.text)
     for ent in doc.ents:
         if ent.label_ in ["PRODUCT", "ORG", "GPE"] and len(ent.text) > 2:
@@ -64,11 +62,9 @@ def extract_skills_contextually(resume_text: str, job_description: str, role: st
     resume_skills = extract_skills_nlp(resume_text.lower())
     job_skills = extract_skills_nlp(job_description.lower())
     
-    # Add target skills and role-specific skills to the job skills
     job_skills.update(skill.lower() for skill in target_skills if skill)
     job_skills.update(role_specific_skills)
     
-    # Use fuzzy matching for skills
     matched_skills = []
     for skill in job_skills:
         match = process.extractOne(skill, resume_skills)
@@ -77,17 +73,11 @@ def extract_skills_contextually(resume_text: str, job_description: str, role: st
 
     missing_skills = job_skills - set(matched_skills)
 
-    # Calculate weighted skill score
-    skill_score = 0
-    for skill, weight in zip(target_skills, weights):
-        best_match = process.extractOne(skill, matched_skills)
-        if best_match and isinstance(best_match, tuple) and len(best_match) >= 2 and best_match[1] >= 80:
-            skill_score += weight
-
+    skill_score = sum(weight for skill, weight in zip(target_skills, weights) 
+                      if process.extractOne(skill, matched_skills)[1] >= 80)
     total_weight = sum(weights) if weights else 1
     skill_score /= total_weight
     
-    # Use TF-IDF and cosine similarity for additional matching
     try:
         vectorizer = TfidfVectorizer()
         tfidf_matrix = vectorizer.fit_transform([resume_text, job_description])
@@ -95,15 +85,12 @@ def extract_skills_contextually(resume_text: str, job_description: str, role: st
     except ValueError:
         cosine_sim = 0
     
-    # Combine weighted skill score and cosine similarity
     final_skill_score = 0.7 * skill_score + 0.3 * cosine_sim
     
     return final_skill_score, list(matched_skills), list(missing_skills)
 
 def extract_education_from_resume(text):
     education = []
-
-    # List of education keywords to match against
     education_keywords = [
         'Bsc', 'B. Pharmacy', 'B Pharmacy', 'Msc', 'M. Pharmacy', 'Ph.D', 'Bachelor', 'Master',
         'BE', 'B.E.', 'B.E', 'BS', 'B.S', 'C.A.', 'B.Com', 'M.Com', 'ME', 'M.E', 'MS', 'M.S',
@@ -111,49 +98,25 @@ def extract_education_from_resume(text):
         '5 year integrated masters', 'masters', 'SSC', 'HSC', 'CBSE', 'ICSE', 'X', 'XII'
     ]
 
-    # Regex pattern to find education information
     pattern = r"(?i)(?:{})\s(?:\w+\s)*\w+".format("|".join(re.escape(keyword) for keyword in education_keywords))
     matches = re.findall(pattern, text)
     for match in matches:
         education.append({
             'degree': match.strip(),
-            'score': calculate_degree_score(match.strip())  # Assuming a function to calculate score
+            'score': calculate_degree_score(match.strip())
         })
 
     return education
 
 def calculate_degree_score(degree):
-    # Example scoring function, you can customize this based on your requirements
     degree_scores = {
-        'Ph.D': 100,
-        'Master': 80,
-        'Bachelor': 60,
-        'Bsc': 60,
-        'Msc': 80,
-        'BE': 60,
-        'B.E.': 60,
-        'BS': 60,
-        'B.S': 60,
-        'ME': 80,
-        'M.E': 80,
-        'MS': 80,
-        'M.S': 80,
-        'BTECH': 60,
-        'B.TECH': 60,
-        'M.TECH': 80,
-        'MTECH': 80,
-        'MBA': 80,
-        'PHD': 100,
-        'graduate': 50,
-        'post-graduate': 70,
-        'SSC': 40,
-        'HSC': 50,
-        'CBSE': 50,
-        'ICSE': 50,
-        'X': 30,
-        'XII': 40
+        'Ph.D': 100, 'Master': 80, 'Bachelor': 60, 'Bsc': 60, 'Msc': 80,
+        'BE': 60, 'B.E.': 60, 'BS': 60, 'B.S': 60, 'ME': 80, 'M.E': 80,
+        'MS': 80, 'M.S': 80, 'BTECH': 60, 'B.TECH': 60, 'M.TECH': 80,
+        'MTECH': 80, 'MBA': 80, 'PHD': 100, 'graduate': 50, 'post-graduate': 70,
+        'SSC': 40, 'HSC': 50, 'CBSE': 50, 'ICSE': 50, 'X': 30, 'XII': 40
     }
-    return degree_scores.get(degree, 50)  # Default score if degree not found
+    return degree_scores.get(degree, 50)
 
 def calculate_education_score(resume_text):
     education_entries = extract_education_from_resume(resume_text)
@@ -169,24 +132,6 @@ def extract_experience(resume_text: str, role: str) -> List[Dict[str, Any]]:
     doc = nlp(resume_text)
     experiences = []
     
-    def parse_date_range(date_str):
-        parts = re.split(r'\s*[-–—]\s*|\s+to\s+', date_str)
-        dates = []
-        for part in parts:
-            try:
-                dates.append(parse(part, fuzzy=True))
-            except ValueError:
-                year_match = re.search(r'\d{4}', part)
-                if year_match:
-                    dates.append(parse(year_match.group(), fuzzy=True))
-        
-        if len(dates) == 2:
-            return dates[0], dates[1]
-        elif len(dates) == 1:
-            return dates[0], None
-        else:
-            return None, None
-
     role_config = load_job_role_config(role)
     job_titles = role_config["experience_keywords"]
 
@@ -204,12 +149,9 @@ def extract_experience(resume_text: str, role: str) -> List[Dict[str, Any]]:
         for ent in sent.ents:
             if ent.label_ == "ORG" and not company:
                 company = ent.text
-                logger.debug(f"Found company: {company}")
             elif ent.label_ == "PERSON" or any(process.extractOne(title, [ent.text.lower()])[1] >= 80 for title in job_titles):
                 job_title = ent.text
-                logger.debug(f"Found job title: {job_title}")
         
-        # Look for job title indicators
         title_indicators = ["position of", "worked as", "role of", "titled"]
         for indicator in title_indicators:
             if indicator in sent.text.lower():
@@ -233,10 +175,27 @@ def extract_experience(resume_text: str, role: str) -> List[Dict[str, Any]]:
                     "end_date": end_date.strftime("%Y-%m-%d") if end_date != datetime.now() else "Present",
                     "duration": duration
                 })
-                logger.debug(f"Added experience: {experiences[-1]}")
     
     logger.info(f"Extracted experiences: {experiences}")
     return experiences
+
+def parse_date_range(date_str):
+    parts = re.split(r'\s*[-–—]\s*|\s+to\s+', date_str)
+    dates = []
+    for part in parts:
+        try:
+            dates.append(parse(part, fuzzy=True))
+        except ValueError:
+            year_match = re.search(r'\d{4}', part)
+            if year_match:
+                dates.append(parse(year_match.group(), fuzzy=True))
+    
+    if len(dates) == 2:
+        return dates[0], dates[1]
+    elif len(dates) == 1:
+        return dates[0], None
+    else:
+        return None, None
 
 def calculate_relevant_experience_score(experiences: List[Dict[str, Any]], job_description: str, role: str) -> float:
     job_desc_doc = nlp(job_description.lower())
@@ -249,20 +208,16 @@ def calculate_relevant_experience_score(experiences: List[Dict[str, Any]], job_d
         exp_text = f"{exp['title']} {exp['company']}"
         exp_doc = nlp(exp_text.lower())
         
-        # Calculate base similarity
         similarity = exp_doc.similarity(job_desc_doc)
-        
-        # Apply keyword bonus
         keyword_bonus = sum(0.1 for keyword in role_keywords if keyword.lower() in exp_text.lower())
         similarity += keyword_bonus
         
-        # Apply recency bonus (more recent experience gets higher weight)
         recency_weight = 1 + (0.1 * (datetime.now().year - int(exp['start_date'][:4])))
         
         duration = exp.get('duration', 0)
-        relevance_score += similarity * min(duration, 5) * recency_weight  # Cap at 5 years per experience
+        relevance_score += similarity * min(duration, 5) * recency_weight
     
-    return min(relevance_score * 10, 100)  # Scale and cap at 100
+    return min(relevance_score * 10, 100)
 
 def evaluate_project_complexity(resume_text: str, job_description: str, role: str) -> float:
     role_config = load_job_role_config(role)
@@ -273,43 +228,24 @@ def evaluate_project_complexity(resume_text: str, job_description: str, role: st
     
     complexity_score = sum(2 for phrase in project_keywords if phrase.lower() in resume_text.lower())
     
-    # Analyze context of technical terms
     for term in project_keywords:
         if term.lower() in resume_text.lower():
             surrounding_text = resume_text[max(0, resume_text.lower().index(term.lower()) - 50):min(len(resume_text), resume_text.lower().index(term.lower()) + 50)]
             if any(keyword in surrounding_text.lower() for keyword in ['implement', 'develop', 'design', 'architect']):
                 complexity_score += 1
     
-    # Consider the number of sentences mentioning projects
     project_sentences = sum(1 for sent in doc.sents if 'project' in sent.text.lower())
     
     relevance = doc.similarity(job_doc)
     
-    # Combine scores with weights
     combined_score = (0.4 * complexity_score + 0.3 * len(project_keywords) + 0.3 * project_sentences) * relevance
     
-    return min(combined_score / 15, 1)  # Normalize and cap at 1
+    return min(combined_score / 15, 1)
 
 def calculate_experience_score(experiences: List[Dict[str, Any]], required_years: float) -> float:
     total_duration = sum(exp.get('duration', 0) for exp in experiences)
     score = (total_duration / required_years) * 100
-    return min(score, 100)  # Score as a percentage, capped at 100%
-
-def load_feedback_data(filename: str) -> List[Dict[str, Any]]:
-    """Load feedback data from a JSON file."""
-    if os.path.exists(filename):
-        try:
-            with open(filename, "r") as file:
-                content = file.read().strip()
-                return json.loads(content) if content else []
-        except json.JSONDecodeError:
-            logger.error(f"Error decoding JSON from {filename}")
-    return []
-
-def save_feedback_data(feedback_data: List[Dict[str, Any]], filename: str):
-    """Save feedback data to a JSON file."""
-    with open(filename, "w") as file:
-        json.dump(feedback_data, file)
+    return min(score, 100)
 
 def calculate_robust_fitment(experience_score: float, skill_score: float, education_score: float, project_complexity_score: float, role: str) -> float:
     try:
@@ -320,15 +256,13 @@ def calculate_robust_fitment(experience_score: float, skill_score: float, educat
     except ValueError as e:
         raise TypeError(f"All scores must be convertible to floats. Error: {str(e)}")
     
-    # Normalize scores to be between 0 and 100
-    experience_score = min(experience_score, 100)
-    skill_score = min(skill_score, 100)
-    education_score = min(education_score, 100)
-    project_complexity_score = min(project_complexity_score * 100, 100)
+    experience_score = min(max(experience_score, 0), 100)
+    skill_score = min(max(skill_score, 0), 100)
+    education_score = min(max(education_score, 0), 100)
+    project_complexity_score = min(max(project_complexity_score, 0), 100)
 
-    # Adjust weights based on the role
     if role == "data_scientist":
-        weights = [0.3, 0.3, 0.2, 0.2]  # Experience, Skills, Education, Project Complexity
+        weights = [0.3, 0.3, 0.2, 0.2]
     elif role == "software_engineer":
         weights = [0.3, 0.35, 0.15, 0.2]
     elif role == "ui_designer":
@@ -336,7 +270,7 @@ def calculate_robust_fitment(experience_score: float, skill_score: float, educat
     elif role == "full_stack_engineer":
         weights = [0.3, 0.35, 0.15, 0.2]
     else:
-        weights = [0.25, 0.25, 0.25, 0.25]  # Default equal weights
+        weights = [0.25, 0.25, 0.25, 0.25]
 
     overall_score = (
         weights[0] * experience_score +
@@ -345,16 +279,14 @@ def calculate_robust_fitment(experience_score: float, skill_score: float, educat
         weights[3] * project_complexity_score
     )
 
-    # Apply a small bonus for high scores
     if overall_score >= 80:
-        overall_score = min(overall_score * 1.05, 100)  # 5% bonus, capped at 100
+        overall_score = min(overall_score * 1.05, 100)
     elif overall_score >= 70:
-        overall_score = min(overall_score * 1.03, 100)  # 3% bonus, capped at 100
+        overall_score = min(overall_score * 1.03, 100)
 
-    return overall_score
+    return round(overall_score, 2)
 
 def extract_text_from_pdf(file_content):
-    """Extracts text from a PDF file content in bytes."""
     try:
         doc = fitz.open(stream=file_content, filetype="pdf")
         text = ""
@@ -367,9 +299,8 @@ def extract_text_from_pdf(file_content):
     except Exception as e:
         logger.error(f"Error extracting text from PDF: {str(e)}")
         raise ValueError(f"Failed to extract text from PDF: {str(e)}")
-
+    
 def extract_text_from_docx(file_content):
-    """Extracts text from a DOCX file object."""
     try:
         doc = Document(BytesIO(file_content))
         text = "\n".join([para.text for para in doc.paragraphs])
@@ -381,7 +312,6 @@ def extract_text_from_docx(file_content):
         raise ValueError(f"Failed to extract text from DOCX: {str(e)}")
 
 def extract_first_name(resume_text: str) -> str:
-    """Extract the first name from the resume text."""
     doc = nlp(resume_text)
     for ent in doc.ents:
         if ent.label_ == "PERSON":
