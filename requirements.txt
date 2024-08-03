@@ -44,3 +44,5 @@ python-Levenshtein
 python-docx
 spacy
 plotly
+redis
+rq
