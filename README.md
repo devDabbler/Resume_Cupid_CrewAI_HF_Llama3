@@ -38,13 +38,61 @@ Resume Cupid is an intelligent resume evaluation tool designed to streamline the
   - fuzzywuzzy (for string matching)
   - PyYAML (for configuration management)
 
-## Setup and Installation
-
-(Instructions for setting up the project locally would go here)
-
 ## Usage
 
-(Instructions on how to use the application would go here)
+Login:
+
+Open the Resume Cupid application in your web browser.
+Enter your username and password on the login page.
+Click the "Login" button to access the main application.
+
+
+Upload Resume and Job Description:
+
+In the main application interface, you'll see a form for resume evaluation.
+Paste the job description into the provided text area. Ensure it's detailed and includes key aspects of the role.
+Upload the candidate's resume using the file uploader. Supported formats are PDF and DOCX.
+
+
+Select Job Role and Skills:
+
+Choose the appropriate job role from the dropdown menu. If the exact role isn't listed, select "Other" and enter a custom job title.
+Enter up to five key skills required for the position. These will be used to evaluate the candidate's skillset.
+Assign a rank to each skill to indicate its importance (1 being the most important).
+
+
+Set Experience Requirement:
+
+Enter the minimum years of experience required for the position.
+
+
+Submit for Evaluation:
+
+Click the "Submit" button to start the resume evaluation process.
+
+
+Review Results:
+
+Once the evaluation is complete, you'll see a comprehensive analysis of the candidate's resume.
+The results include:
+
+Overall fitment score
+Recommendation for interview
+Detailed fitment analysis
+Gap analysis and discussion points
+Scores for skills, experience, education, and project complexity
+
+
+Provide Feedback:
+
+After reviewing the results, you can provide feedback on the evaluation's accuracy and quality.
+Fill in the feedback form with your name, the candidate's name, client information, and ratings.
+Submit your feedback to help improve the tool's performance.
+
+
+Logout:
+
+When you're finished using the application, make sure to log out to secure your session.
 
 ## Future Developments
 
