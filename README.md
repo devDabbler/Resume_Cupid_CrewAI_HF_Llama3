@@ -59,7 +59,7 @@ This project is currently for internal use only. Contribution guidelines will be
 
 ## License
 
-(License information would go here)
+TBD
 
 ## Contact
 
