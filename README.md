@@ -63,7 +63,7 @@ This project is currently for internal use only. Contribution guidelines will be
 
 ## Contact
 
-For any queries regarding this project, please contact [Your Contact Information].
+For any queries regarding this project, reach out to me at hello@resumecupid.ai.
 
 ---
 
